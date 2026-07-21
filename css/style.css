@@ -93,7 +93,7 @@ img, svg{ display: block; }
 
 .sidebar-footer{ margin-top:auto; padding-top:20px; border-top:1px solid rgba(255,255,255,0.08); }
 .nav-item--ghost{ color:#B7C4B3; font-weight:500; }
-.nav-item--ghost:hover{ color:#F3C6C0; background: rgba(180,83,74,0.18); }
+.nav-item--ghost:hover{ color:#fff; background: rgba(255,255,255,0.06); }
 .sidebar-note{ font-size:11.5px; color:#7E8F7A; margin: 10px 6px 0; line-height:1.5; }
 
 /* ---------------- Topbar (mobile) ---------------- */

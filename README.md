@@ -14,7 +14,11 @@ Aplikasi pencatat pemasukan dan pengeluaran yang hangat, ramah, dan mudah dipaka
 Dibangun murni dengan **HTML, CSS, dan JavaScript (vanilla)** — tanpa proses build/bundler, sehingga:
 - Ringan dan cepat dimuat.
 - Bisa langsung dibuka dari file `index.html`.
-- Sangat mudah di-deploy sebagai situs statis (termasuk GitLab Pages).
+- Sangat mudah di-deploy sebagai situs statis (termasuk GitHub Pages).
+
+Data transaksi disimpan **bersama** di **Google Spreadsheet**, dijembatani lewat **Google Apps Script** sebagai API sederhana. Artinya semua orang yang membuka aplikasi ini melihat data yang sama — cocok untuk dipakai bersama keluarga.
+
+> ⚠️ **Penting**: karena datanya terbuka bersama, siapapun yang punya link aplikasi ini bisa menambah/menghapus transaksi tanpa login. Jangan bagikan link publik secara luas kalau tidak ingin sembarang orang mengubah data.
 
 ## 📁 Struktur Proyek
 
@@ -24,7 +28,9 @@ azmyra-finance/
 ├── css/
 │   └── style.css                 # design system (warna, tipografi, komponen)
 ├── js/
-│   └── app.js                    # logika aplikasi & penyimpanan data
+│   └── app.js                    # logika aplikasi + koneksi ke Google Spreadsheet
+├── apps-script/
+│   └── Code.gs                   # backend API (tempel ke Google Apps Script)
 ├── assets/
 │   └── favicon.svg
 ├── .github/
@@ -32,6 +38,30 @@ azmyra-finance/
 │       └── deploy.yml            # konfigurasi deploy ke GitHub Pages
 └── README.md
 ```
+
+## 🔗 Setup Google Spreadsheet sebagai database
+
+1. Buka [sheets.google.com](https://sheets.google.com) → buat spreadsheet baru, beri nama misalnya "Azmyra Finance DB".
+2. Klik menu **Extensions → Apps Script**.
+3. Hapus semua kode default (`function myFunction() {...}`), lalu buka file `apps-script/Code.gs` di proyek ini, salin seluruh isinya, dan tempel ke editor Apps Script.
+4. Klik **Save** (ikon disket), beri nama project misalnya "Azmyra API".
+5. Klik tombol **Deploy → New deployment**.
+6. Klik ikon gerigi ⚙️ di sebelah "Select type" → pilih **Web app**.
+7. Isi:
+   - **Execute as**: `Me`
+   - **Who has access**: `Anyone`
+8. Klik **Deploy**. Google akan meminta otorisasi — ikuti langkah **Authorize access**, pilih akun Google kamu, lalu klik **Advanced → Go to (nama project) (unsafe) → Allow** (ini normal karena scriptnya buatan sendiri, bukan aplikasi pihak ketiga).
+9. Setelah berhasil, salin **Web app URL** yang muncul (formatnya `https://script.google.com/macros/s/xxxxx/exec`).
+10. Buka file `js/app.js`, cari baris:
+    ```js
+    const CONFIG = {
+      API_URL: "TEMPEL_URL_APPS_SCRIPT_KAMU_DI_SINI",
+    };
+    ```
+    Ganti `"TEMPEL_URL_APPS_SCRIPT_KAMU_DI_SINI"` dengan URL yang kamu salin tadi.
+11. Simpan, lalu commit & push perubahan ini ke GitHub agar situs ter-update.
+
+Setelah ini, setiap transaksi yang ditambahkan lewat aplikasi akan otomatis muncul sebagai baris baru di spreadsheet kamu — dan sebaliknya, siapapun yang membuka aplikasi akan melihat data terbaru dari spreadsheet yang sama.
 
 ## 🚀 Menjalankan secara lokal
 
