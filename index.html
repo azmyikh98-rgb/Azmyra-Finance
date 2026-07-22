@@ -40,7 +40,13 @@
       </div>
       <div class="field">
         <label for="login-password">Password</label>
-        <input type="password" id="login-password" name="password" autocomplete="current-password" required />
+        <div class="password-field">
+          <input type="password" id="login-password" name="password" autocomplete="current-password" required />
+          <button type="button" class="password-toggle" id="login-password-toggle" aria-label="Tampilkan password" aria-pressed="false">
+            <svg class="icon-eye" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/></svg>
+            <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" hidden><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.24 4.24M9.9 4.24A10.4 10.4 0 0 1 12 4c6.5 0 10 7 10 7a15.8 15.8 0 0 1-2.6 3.53M6.6 6.6C4 8.3 2 11 2 11s3.5 7 10 7a9.9 9.9 0 0 0 3.4-.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
       </div>
       <p class="field-error" id="login-error" hidden></p>
       <button type="submit" class="btn btn--primary btn--block" id="login-submit">
