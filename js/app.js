@@ -182,7 +182,14 @@
   }
 
   /* ---------------- Setup kontrol periode ---------------- */
-  const periodChips = document.querySelectorAll("#period-type .chip");
+  const periodTypeSelect = document.getElementById("period-type-select");
+  const periodForm = document.getElementById("period-form");
+  const periodFieldWrappers = {
+    daily: document.getElementById("field-daily"),
+    weekly: document.getElementById("field-weekly"),
+    monthly: document.getElementById("field-monthly"),
+    yearly: document.getElementById("field-yearly"),
+  };
   const periodInputs = {
     daily: document.getElementById("period-daily"),
     weekly: document.getElementById("period-weekly"),
@@ -195,6 +202,8 @@
     periodInputs.weekly.value = getISOWeekString(new Date());
     periodInputs.monthly.value = todayISO().slice(0, 7);
     populateYearSelect();
+    periodTypeSelect.value = "daily";
+    showPeriodField("daily");
   }
 
   function populateYearSelect() {
@@ -216,15 +225,18 @@
     select.value = sorted.includes(Number(prevValue)) ? prevValue : String(currentYear);
   }
 
-  function setPeriodType(type) {
-    periodType = type;
-    periodChips.forEach((chip) => chip.classList.toggle("is-active", chip.dataset.period === type));
-    Object.entries(periodInputs).forEach(([key, el]) => { el.hidden = key !== type; });
-    renderPeriodPanels();
+  function showPeriodField(type) {
+    Object.entries(periodFieldWrappers).forEach(([key, wrapper]) => { wrapper.hidden = key !== type; });
   }
 
-  periodChips.forEach((chip) => chip.addEventListener("click", () => setPeriodType(chip.dataset.period)));
-  Object.values(periodInputs).forEach((el) => el.addEventListener("change", renderPeriodPanels));
+  periodTypeSelect.addEventListener("change", () => showPeriodField(periodTypeSelect.value));
+
+  periodForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    periodType = periodTypeSelect.value;
+    renderPeriodPanels();
+    showToast("Periode diterapkan ✓");
+  });
 
   /* ---------------- Helpers umum ---------------- */
   function formatRupiah(n) {

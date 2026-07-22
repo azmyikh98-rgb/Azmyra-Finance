@@ -108,22 +108,38 @@
       <div class="panel period-panel">
         <div class="panel-head">
           <h2>Lihat Periode</h2>
-          <p class="panel-sub">Pilih periode untuk melihat arus kas, kategori, dan transaksi di bawah</p>
+          <p class="panel-sub">Pilih periode, lalu klik Terapkan untuk melihat arus kas, kategori, dan transaksi di bawah</p>
         </div>
-        <div class="period-bar">
-          <div class="chip-group" id="period-type" role="group" aria-label="Pilih jenis periode">
-            <button class="chip is-active" data-period="daily" type="button">Harian</button>
-            <button class="chip" data-period="weekly" type="button">Mingguan</button>
-            <button class="chip" data-period="monthly" type="button">Bulanan</button>
-            <button class="chip" data-period="yearly" type="button">Tahunan</button>
+        <form class="period-bar" id="period-form">
+          <div class="period-field">
+            <label for="period-type-select">Periode</label>
+            <select id="period-type-select" class="period-input">
+              <option value="daily">Harian</option>
+              <option value="weekly">Mingguan</option>
+              <option value="monthly">Bulanan</option>
+              <option value="yearly">Tahunan</option>
+            </select>
           </div>
-          <div class="period-picker">
-            <input type="date" id="period-daily" class="period-input" aria-label="Pilih tanggal" />
-            <input type="week" id="period-weekly" class="period-input" aria-label="Pilih minggu" hidden />
-            <input type="month" id="period-monthly" class="period-input" aria-label="Pilih bulan" hidden />
-            <select id="period-yearly" class="period-input" aria-label="Pilih tahun" hidden></select>
+
+          <div class="period-field" id="field-daily">
+            <label for="period-daily">Pilih Tanggal</label>
+            <input type="date" id="period-daily" class="period-input" />
           </div>
-        </div>
+          <div class="period-field" id="field-weekly" hidden>
+            <label for="period-weekly">Pilih Minggu</label>
+            <input type="week" id="period-weekly" class="period-input" />
+          </div>
+          <div class="period-field" id="field-monthly" hidden>
+            <label for="period-monthly">Pilih Bulan</label>
+            <input type="month" id="period-monthly" class="period-input" />
+          </div>
+          <div class="period-field" id="field-yearly" hidden>
+            <label for="period-yearly">Pilih Tahun</label>
+            <select id="period-yearly" class="period-input"></select>
+          </div>
+
+          <button type="submit" class="btn btn--primary period-apply" id="period-apply">Terapkan</button>
+        </form>
       </div>
 
       <div class="grid-2">
