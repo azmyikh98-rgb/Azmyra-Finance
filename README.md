@@ -51,7 +51,7 @@ azmyra-finance/
    - **Execute as**: `Me`
    - **Who has access**: `Anyone`
 8. Klik **Deploy**. Google akan meminta otorisasi — ikuti langkah **Authorize access**, pilih akun Google kamu, lalu klik **Advanced → Go to (nama project) (unsafe) → Allow** (ini normal karena scriptnya buatan sendiri, bukan aplikasi pihak ketiga).
-9. Setelah berhasil, salin **Web app URL** yang muncul (formatnya `https://script.google.com/macros/s/xxxxx/exec`).
+9. Setelah berhasil, klik tombol **"Salin"** di bagian **Web app URL** yang muncul (formatnya `https://script.google.com/macros/s/xxxxx/exec`). **Selalu pakai tombol Salin** — jangan select teks URL secara manual dari layar, karena tampilan URL panjang sering terpotong dengan tanda "...".
 10. Buka file `js/app.js`, cari baris:
     ```js
     const CONFIG = {
@@ -61,7 +61,27 @@ azmyra-finance/
     Ganti `"TEMPEL_URL_APPS_SCRIPT_KAMU_DI_SINI"` dengan URL yang kamu salin tadi.
 11. Simpan, lalu commit & push perubahan ini ke GitHub agar situs ter-update.
 
-Setelah ini, setiap transaksi yang ditambahkan lewat aplikasi akan otomatis muncul sebagai baris baru di spreadsheet kamu — dan sebaliknya, siapapun yang membuka aplikasi akan melihat data terbaru dari spreadsheet yang sama.
+Setelah ini, empat sheet berikut akan **otomatis terbuat** di spreadsheet kamu begitu aplikasi pertama kali dipakai:
+
+| Sheet | Isi |
+|---|---|
+| `Pemasukan` | Semua transaksi pemasukan |
+| `Pengeluaran` | Semua transaksi pengeluaran |
+| `Users` | Daftar akun yang boleh login |
+| `Log` | Catatan aktivitas (siapa menambah/menghapus apa, kapan) |
+
+### 👤 Menambahkan akun login (WAJIB sebelum bisa dipakai)
+
+Aplikasi ini butuh login sederhana. Buka sheet **`Users`** di spreadsheet kamu (kalau belum ada, buka aplikasi sekali dulu di browser supaya sheet-nya otomatis terbuat, atau tambahkan manual dengan header `username | password | displayName`), lalu isi satu baris per anggota keluarga, contoh:
+
+| username | password | displayName |
+|---|---|---|
+| ayah | rahasia123 | Ayah |
+| ibu | rahasia456 | Ibu |
+
+⚠️ **Penting untuk diketahui**: ini login level dasar untuk mencegah orang asing iseng membuka aplikasi — **bukan** keamanan tingkat tinggi. Password disimpan sebagai teks biasa di spreadsheet (tidak dienkripsi), dan siapapun yang tahu URL Apps Script secara teknis masih bisa memanggil API-nya langsung tanpa lewat halaman login. Jangan gunakan password yang juga kamu pakai di akun penting lain.
+
+Setiap transaksi yang ditambahkan/dihapus lewat aplikasi akan otomatis tercatat di sheet `Log` beserta nama usernya — dan sebaliknya, siapapun yang login akan melihat data terbaru dari spreadsheet yang sama.
 
 ## 🚀 Menjalankan secara lokal
 
@@ -110,3 +130,16 @@ Lalu buka `http://localhost:8080`.
 - Target/anggaran bulanan per kategori.
 - Mode gelap.
 - Sinkronisasi ke backend (mis. Supabase/Firebase) jika ingin data lintas perangkat.
+
+## 🛠️ Troubleshooting
+
+**Update kode Apps Script TANPA mengubah URL:**
+Kalau kamu mengedit `apps-script/Code.gs` dan perlu mempublikasikan perubahannya:
+1. Buka project Apps Script → **Deploy → Manage deployments**.
+2. Pilih deployment yang **sudah aktif/dipakai** (cek dulu URL-nya cocok dengan yang ada di `js/app.js`).
+3. Klik ikon **pensil (Edit)** → di dropdown **Version**, pilih **New version** → klik **Deploy**.
+
+Jangan pilih **"New deployment"** untuk update biasa — itu akan membuat **URL baru yang berbeda**, sehingga `js/app.js` kamu perlu diperbarui lagi. Gunakan "New deployment" hanya saat pertama kali setup.
+
+**Error "CORS policy" / "Failed to fetch" di Console:**
+Biasanya berarti URL di `CONFIG.API_URL` (`js/app.js`) sudah tidak valid atau salah ketik. Tes langsung di browser: buka `<URL_KAMU>?action=list` — kalau muncul teks JSON, URL-nya benar; kalau muncul "file tidak ditemukan", URL-nya salah/kadaluarsa.

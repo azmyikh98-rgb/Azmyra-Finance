@@ -1,7 +1,8 @@
 /* =========================================================
    AZMYRA FINANCE — app logic (vanilla JS, no build step)
-   Data disimpan bersama di Google Spreadsheet lewat Google Apps Script,
-   sehingga semua orang yang membuka aplikasi ini melihat data yang sama.
+   Data disimpan bersama di Google Spreadsheet (sheet terpisah untuk
+   Pemasukan & Pengeluaran) lewat Google Apps Script, dengan login
+   sederhana berbasis sheet "Users" dan log aktivitas di sheet "Log".
    ========================================================= */
 (function () {
   "use strict";
@@ -12,8 +13,10 @@
      Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
      ========================================================= */
   const CONFIG = {
-    API_URL: "https://script.google.com/macros/s/AKfycbw4zVEKvTLqbo0kqBRBDsnewmRiB0KsIeq9R9VwyGelPN-1-surWBP4mCmbxxPI_NSlRw/exec",
+    API_URL: "https://script.google.com/macros/s/AKfycbycRx4yLrKBN1BeBOkzIDGZUj-vaBn2V5HEtthzP2pq9oJBbPJSxJBm4X7rRj8_AU-g/exec",
   };
+
+  const AUTH_STORAGE_KEY = "azmyra_finance_user_v1";
 
   const CATEGORIES = {
     income: [
@@ -48,7 +51,37 @@
   let currentFilter = "all"; // untuk Riwayat
   let searchTerm = "";
   let periodType = "daily"; // daily | weekly | monthly | yearly
+  let currentUser = null; // { username, displayName }
   let isConfigured = CONFIG.API_URL && CONFIG.API_URL.startsWith("http");
+
+  /* ---------------- Auth ---------------- */
+  function loadStoredUser() {
+    try {
+      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveStoredUser(user) {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+  }
+
+  function clearStoredUser() {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  }
+
+  async function loginRequest(username, password) {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "login", username, password }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Login gagal");
+    return json.user;
+  }
 
   /* ---------------- Koneksi ke Google Spreadsheet ---------------- */
   async function fetchTransactions() {
@@ -63,17 +96,17 @@
     const res = await fetch(CONFIG.API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" }, // hindari CORS preflight
-      body: JSON.stringify({ action: "add", transaction: tx }),
+      body: JSON.stringify({ action: "add", transaction: tx, username: currentUser ? currentUser.username : "" }),
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.error || "Gagal menyimpan transaksi");
   }
 
-  async function deleteTransactionRemote(id) {
+  async function deleteTransactionRemote(id, type) {
     const res = await fetch(CONFIG.API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "delete", id }),
+      body: JSON.stringify({ action: "delete", id, type, username: currentUser ? currentUser.username : "" }),
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.error || "Gagal menghapus transaksi");
@@ -83,12 +116,7 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
-  /* ---------------- Helpers tanggal ----------------
-     Google Sheets kadang mengembalikan tanggal dalam format yang tidak
-     selalu persis "yyyy-MM-dd" (mis. berubah jadi objek Date bertimezone
-     saat dibaca ulang). normalizeDate menyeragamkan semuanya ke
-     "yyyy-MM-dd" versi LOKAL, supaya perbandingan tanggal & filter
-     periode akurat dan tidak meleset satu hari. */
+  /* ---------------- Helpers tanggal ---------------- */
   function pad2(n) { return String(n).padStart(2, "0"); }
 
   function normalizeDate(raw) {
@@ -113,8 +141,8 @@
 
   function getISOWeekString(date) {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = (d.getUTCDay() + 6) % 7; // Senin = 0
-    d.setUTCDate(d.getUTCDate() - dayNum + 3); // geser ke hari Kamis minggu ini
+    const dayNum = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - dayNum + 3);
     const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
     const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
     firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
@@ -154,7 +182,6 @@
       const lastDay = new Date(y, m, 0).getDate();
       return { start: `${y}-${pad2(m)}-01`, end: `${y}-${pad2(m)}-${pad2(lastDay)}` };
     }
-    // yearly
     const y = document.getElementById("period-yearly").value || String(new Date().getFullYear());
     return { start: `${y}-01-01`, end: `${y}-12-31` };
   }
@@ -310,10 +337,17 @@
     if (hour < 11) g = "Selamat pagi";
     else if (hour < 15) g = "Selamat siang";
     else if (hour < 19) g = "Selamat sore";
-    document.getElementById("greeting-eyebrow").textContent = `${g}, semoga harimu lancar`;
+    const name = currentUser ? currentUser.displayName : "";
+    document.getElementById("greeting-eyebrow").textContent = name ? `${g}, ${name}` : `${g}, semoga harimu lancar`;
     document.getElementById("today-date").textContent = new Date().toLocaleDateString("id-ID", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
+  }
+
+  function renderUserBadge() {
+    if (!currentUser) return;
+    document.getElementById("user-name").textContent = currentUser.displayName;
+    document.getElementById("user-avatar").textContent = currentUser.displayName.slice(0, 1);
   }
 
   /* ---------------- Dashboard: saldo & ringkasan (selalu total keseluruhan) ---------------- */
@@ -362,7 +396,6 @@
     document.getElementById("ring-percent").textContent = Math.round(pct * 100) + "%";
     captionEl.textContent = caption;
 
-    // Kategori pengeluaran teratas pada periode ini
     const catTotals = {};
     periodTx
       .filter((t) => t.type === "expense")
@@ -388,7 +421,6 @@
       });
     }
 
-    // Transaksi pada periode ini
     const recentList = document.getElementById("recent-tx-list");
     const recentEmpty = document.getElementById("recent-empty");
     const sortedTx = [...periodTx].sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id)).slice(0, 8);
@@ -565,7 +597,7 @@
         <td class="note-cell">${escapeHtml(t.note || "—")}</td>
         <td class="align-right amount-cell ${t.type}">${t.type === "income" ? "+" : "−"} ${formatRupiah(t.amount)}</td>
         <td class="align-right">
-          <button class="row-delete" title="Hapus transaksi" data-id="${t.id}">
+          <button class="row-delete" title="Hapus transaksi" data-id="${t.id}" data-type="${t.type}">
             <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </td>
@@ -576,9 +608,10 @@
     tbody.querySelectorAll(".row-delete").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
+        const type = btn.dataset.type;
         btn.disabled = true;
         try {
-          await deleteTransactionRemote(id);
+          await deleteTransactionRemote(id, type);
           transactions = transactions.filter((t) => t.id !== id);
           renderHistory();
           renderDashboard();
@@ -597,14 +630,64 @@
     await loadAllData(true);
   });
 
-  /* ---------------- Load awal ---------------- */
-  async function loadAllData(isManualRefresh) {
+  /* ---------------- Logout ---------------- */
+  document.getElementById("logout-btn").addEventListener("click", () => {
+    clearStoredUser();
+    currentUser = null;
+    transactions = [];
+    document.getElementById("app-shell").hidden = true;
+    document.getElementById("login-screen").hidden = false;
+    document.getElementById("login-username").value = "";
+    document.getElementById("login-password").value = "";
+    document.getElementById("login-username").focus();
+  });
+
+  /* ---------------- Login form ---------------- */
+  const loginForm = document.getElementById("login-form");
+  const loginError = document.getElementById("login-error");
+  const loginSubmitBtn = document.getElementById("login-submit");
+  const loginSubmitLabel = document.getElementById("login-submit-label");
+
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
     if (!isConfigured) {
-      showToast("Tempel URL Apps Script di js/app.js (CONFIG.API_URL) dulu.");
-      renderDashboard();
-      renderHistory();
+      loginError.textContent = "Aplikasi belum terhubung ke Google Spreadsheet (isi CONFIG.API_URL di app.js).";
+      loginError.hidden = false;
       return;
     }
+    const username = document.getElementById("login-username").value.trim();
+    const password = document.getElementById("login-password").value;
+    loginError.hidden = true;
+    loginSubmitBtn.disabled = true;
+    loginSubmitLabel.textContent = "Memeriksa…";
+
+    try {
+      const user = await loginRequest(username, password);
+      currentUser = user;
+      saveStoredUser(user);
+      enterApp();
+    } catch (err) {
+      loginError.textContent = err.message || "Login gagal. Coba lagi.";
+      loginError.hidden = false;
+    } finally {
+      loginSubmitBtn.disabled = false;
+      loginSubmitLabel.textContent = "Masuk";
+    }
+  });
+
+  function enterApp() {
+    document.getElementById("login-screen").hidden = true;
+    document.getElementById("app-shell").hidden = false;
+    renderUserBadge();
+    renderGreeting();
+    setFormType("income");
+    document.getElementById("tx-date").value = todayISO();
+    initPeriodDefaults();
+    loadAllData(false);
+  }
+
+  /* ---------------- Load data transaksi ---------------- */
+  async function loadAllData(isManualRefresh) {
     try {
       transactions = await fetchTransactions();
       populateYearSelect();
@@ -619,11 +702,13 @@
 
   /* ---------------- Init ---------------- */
   function init() {
-    renderGreeting();
-    setFormType("income");
-    document.getElementById("tx-date").value = todayISO();
-    initPeriodDefaults();
-    loadAllData(false);
+    const stored = loadStoredUser();
+    if (stored && stored.username) {
+      currentUser = stored;
+      enterApp();
+    } else {
+      document.getElementById("login-username").focus();
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);
