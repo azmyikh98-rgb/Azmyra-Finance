@@ -281,6 +281,7 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .period-panel{ padding-bottom: 24px; }
 .period-bar{ display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin:0; }
 .period-field{ display:flex; flex-direction:column; gap:7px; min-width:170px; }
+.period-field[hidden]{ display:none; }
 .period-field label{ margin:0; font-size:12.5px; font-weight:700; color: var(--moss); }
 .period-input{
   padding: 11px 14px; border-radius: 11px; border: 1.5px solid var(--line);
