@@ -12,7 +12,7 @@
      Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
      ========================================================= */
   const CONFIG = {
-    API_URL: "https://script.google.com/macros/s/AKfycbwfB43OF07vUsSYDiqfT_MVHw8YEIfohzMa8IpknJXVawbg9f66cVwcOh7rdDGzavLbZA/exec",
+    API_URL: "https://script.google.com/macros/s/AKfycbwfB43OF07vUsSYDiqfT_MVHw8YElfohzMa8IpknJXVawbg9f66cVwcOh7rdDGzavLbZA/exec",
   };
 
   const CATEGORIES = {
