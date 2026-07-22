@@ -12,7 +12,7 @@
      Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
      ========================================================= */
   const CONFIG = {
-    API_URL: "https://script.google.com/macros/s/AKfycbwfB43OF07vUsSYDiqfT_MVHw8YElfohzMa8IpknJXVawbg9f66cVwcOh7rdDGzavLbZA/exec",
+    API_URL: "https://script.google.com/macros/s/AKfycbwfB43OF07vUsSYDiqfT_MVHw8YEIfohzMa8IpknJXVawbg9f66cVwcOh7rdDGzavLbZA/exec",
   };
 
   const CATEGORIES = {
@@ -39,11 +39,15 @@
   const CATEGORY_LOOKUP = {};
   [...CATEGORIES.income, ...CATEGORIES.expense].forEach((c) => (CATEGORY_LOOKUP[c.id] = c));
 
+  const MONTH_NAMES_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  const MONTH_NAMES_FULL_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
   /* ---------------- State ---------------- */
   let transactions = [];
   let currentType = "income"; // untuk form Tambah
   let currentFilter = "all"; // untuk Riwayat
   let searchTerm = "";
+  let periodType = "daily"; // daily | weekly | monthly | yearly
   let isConfigured = CONFIG.API_URL && CONFIG.API_URL.startsWith("http");
 
   /* ---------------- Koneksi ke Google Spreadsheet ---------------- */
@@ -52,7 +56,7 @@
     if (!res.ok) throw new Error("Gagal memuat data (" + res.status + ")");
     const json = await res.json();
     if (!json.success) throw new Error(json.error || "Gagal memuat data");
-    return json.data || [];
+    return (json.data || []).map((t) => ({ ...t, date: normalizeDate(t.date) }));
   }
 
   async function addTransactionRemote(tx) {
@@ -79,22 +83,159 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
-  /* ---------------- Helpers ---------------- */
+  /* ---------------- Helpers tanggal ----------------
+     Google Sheets kadang mengembalikan tanggal dalam format yang tidak
+     selalu persis "yyyy-MM-dd" (mis. berubah jadi objek Date bertimezone
+     saat dibaca ulang). normalizeDate menyeragamkan semuanya ke
+     "yyyy-MM-dd" versi LOKAL, supaya perbandingan tanggal & filter
+     periode akurat dan tidak meleset satu hari. */
+  function pad2(n) { return String(n).padStart(2, "0"); }
+
+  function normalizeDate(raw) {
+    if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const d = new Date(raw);
+    if (!isNaN(d)) return toISODate(d);
+    return raw;
+  }
+
+  function toISODate(d) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+
+  function parseISODate(isoStr) {
+    const [y, m, d] = isoStr.split("-").map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+  }
+
+  function todayISO() {
+    return toISODate(new Date());
+  }
+
+  function getISOWeekString(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = (d.getUTCDay() + 6) % 7; // Senin = 0
+    d.setUTCDate(d.getUTCDate() - dayNum + 3); // geser ke hari Kamis minggu ini
+    const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+    const weekNum = 1 + Math.round((d - firstThursday) / (7 * 24 * 3600 * 1000));
+    return `${d.getUTCFullYear()}-W${pad2(weekNum)}`;
+  }
+
+  function getISOWeekMonday(weekStr) {
+    const [yearStr, weekStr2] = weekStr.split("-W");
+    const year = Number(yearStr);
+    const week = Number(weekStr2);
+    const jan4 = new Date(year, 0, 4);
+    const jan4Day = (jan4.getDay() + 6) % 7;
+    const week1Monday = new Date(jan4);
+    week1Monday.setDate(jan4.getDate() - jan4Day);
+    const monday = new Date(week1Monday);
+    monday.setDate(week1Monday.getDate() + (week - 1) * 7);
+    return monday;
+  }
+
+  /* ---------------- Range periode ---------------- */
+  function getPeriodRange() {
+    if (periodType === "daily") {
+      const val = document.getElementById("period-daily").value || todayISO();
+      return { start: val, end: val };
+    }
+    if (periodType === "weekly") {
+      const val = document.getElementById("period-weekly").value || getISOWeekString(new Date());
+      const monday = getISOWeekMonday(val);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      return { start: toISODate(monday), end: toISODate(sunday) };
+    }
+    if (periodType === "monthly") {
+      const val = document.getElementById("period-monthly").value || todayISO().slice(0, 7);
+      const [y, m] = val.split("-").map(Number);
+      const lastDay = new Date(y, m, 0).getDate();
+      return { start: `${y}-${pad2(m)}-01`, end: `${y}-${pad2(m)}-${pad2(lastDay)}` };
+    }
+    // yearly
+    const y = document.getElementById("period-yearly").value || String(new Date().getFullYear());
+    return { start: `${y}-01-01`, end: `${y}-12-31` };
+  }
+
+  function formatPeriodLabel(range) {
+    if (periodType === "daily") {
+      return parseISODate(range.start).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    }
+    if (periodType === "weekly") {
+      const s = parseISODate(range.start);
+      const e = parseISODate(range.end);
+      const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
+      if (sameMonth) return `${s.getDate()}–${e.getDate()} ${MONTH_NAMES_FULL_ID[s.getMonth()]} ${s.getFullYear()}`;
+      return `${s.getDate()} ${MONTH_NAMES_ID[s.getMonth()]} – ${e.getDate()} ${MONTH_NAMES_ID[e.getMonth()]} ${e.getFullYear()}`;
+    }
+    if (periodType === "monthly") {
+      const s = parseISODate(range.start);
+      return `${MONTH_NAMES_FULL_ID[s.getMonth()]} ${s.getFullYear()}`;
+    }
+    return range.start.slice(0, 4);
+  }
+
+  function filterByPeriod(list, range) {
+    return list.filter((t) => t.date >= range.start && t.date <= range.end);
+  }
+
+  /* ---------------- Setup kontrol periode ---------------- */
+  const periodChips = document.querySelectorAll("#period-type .chip");
+  const periodInputs = {
+    daily: document.getElementById("period-daily"),
+    weekly: document.getElementById("period-weekly"),
+    monthly: document.getElementById("period-monthly"),
+    yearly: document.getElementById("period-yearly"),
+  };
+
+  function initPeriodDefaults() {
+    periodInputs.daily.value = todayISO();
+    periodInputs.weekly.value = getISOWeekString(new Date());
+    periodInputs.monthly.value = todayISO().slice(0, 7);
+    populateYearSelect();
+  }
+
+  function populateYearSelect() {
+    const currentYear = new Date().getFullYear();
+    const yearsFromData = transactions.map((t) => Number(t.date.slice(0, 4))).filter((y) => !isNaN(y));
+    const years = new Set([currentYear, ...yearsFromData]);
+    const minYear = Math.min(...years, currentYear - 4);
+    for (let y = currentYear; y >= minYear; y--) years.add(y);
+    const sorted = [...years].sort((a, b) => b - a);
+    const select = periodInputs.yearly;
+    const prevValue = select.value || String(currentYear);
+    select.innerHTML = "";
+    sorted.forEach((y) => {
+      const opt = document.createElement("option");
+      opt.value = String(y);
+      opt.textContent = String(y);
+      select.appendChild(opt);
+    });
+    select.value = sorted.includes(Number(prevValue)) ? prevValue : String(currentYear);
+  }
+
+  function setPeriodType(type) {
+    periodType = type;
+    periodChips.forEach((chip) => chip.classList.toggle("is-active", chip.dataset.period === type));
+    Object.entries(periodInputs).forEach(([key, el]) => { el.hidden = key !== type; });
+    renderPeriodPanels();
+  }
+
+  periodChips.forEach((chip) => chip.addEventListener("click", () => setPeriodType(chip.dataset.period)));
+  Object.values(periodInputs).forEach((el) => el.addEventListener("change", renderPeriodPanels));
+
+  /* ---------------- Helpers umum ---------------- */
   function formatRupiah(n) {
     const val = Math.round(Number(n) || 0);
     return "Rp " + val.toLocaleString("id-ID");
   }
 
   function formatDateShort(isoStr) {
-    const d = new Date(isoStr + "T00:00:00");
+    const d = parseISODate(isoStr);
     if (isNaN(d)) return isoStr;
     return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-  }
-
-  function isThisMonth(isoStr) {
-    const d = new Date(isoStr + "T00:00:00");
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }
 
   function showToast(message) {
@@ -122,7 +263,7 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (route === "tambah") {
       const dateInput = document.getElementById("tx-date");
-      if (!dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+      if (!dateInput.value) dateInput.value = todayISO();
     }
   }
 
@@ -163,8 +304,8 @@
     });
   }
 
-  /* ---------------- Dashboard rendering ---------------- */
-  function renderDashboard() {
+  /* ---------------- Dashboard: saldo & ringkasan (selalu total keseluruhan) ---------------- */
+  function renderHeroStats() {
     const totalIncome = transactions.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
     const totalExpense = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
     const balance = totalIncome - totalExpense;
@@ -172,20 +313,47 @@
     document.getElementById("stat-balance").textContent = formatRupiah(balance);
     document.getElementById("stat-income").textContent = formatRupiah(totalIncome);
     document.getElementById("stat-expense").textContent = formatRupiah(totalExpense);
+  }
 
-    const monthIncome = transactions.filter((t) => t.type === "income" && isThisMonth(t.date)).reduce((s, t) => s + Number(t.amount), 0);
-    const monthExpense = transactions.filter((t) => t.type === "expense" && isThisMonth(t.date)).reduce((s, t) => s + Number(t.amount), 0);
-    let pct = monthIncome > 0 ? Math.min(monthExpense / monthIncome, 1) : monthExpense > 0 ? 1 : 0;
-    const circumference = 452.4;
-    const offset = circumference * (1 - pct);
+  /* ---------------- Dashboard: panel yang mengikuti periode terpilih ---------------- */
+  function renderPeriodPanels() {
+    const range = getPeriodRange();
+    const label = formatPeriodLabel(range);
+    const periodTx = filterByPeriod(transactions, range);
+
+    document.getElementById("period-label-cashflow").textContent = label;
+    document.getElementById("period-label-category").textContent = `Kategori teratas — ${label}`;
+    document.getElementById("period-label-tx").textContent = `Transaksi — ${label}`;
+    document.getElementById("recent-empty-text").textContent = `Belum ada transaksi pada ${label}.`;
+
+    const periodIncome = periodTx.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+    const periodExpense = periodTx.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+
     const ringEl = document.getElementById("ring-progress");
-    ringEl.style.strokeDashoffset = offset;
+    const captionEl = document.getElementById("ring-caption");
+    const circumference = 452.4;
+    let pct = 0;
+    let caption = "Terpakai";
+
+    if (periodIncome > 0) {
+      pct = Math.min(periodExpense / periodIncome, 1);
+    } else if (periodExpense > 0) {
+      pct = 1;
+      caption = "Tanpa pemasukan";
+    } else {
+      pct = 0;
+      caption = "Belum ada data";
+    }
+
+    ringEl.style.strokeDashoffset = circumference * (1 - pct);
     ringEl.style.stroke = pct >= 0.9 ? "var(--brick)" : pct >= 0.65 ? "var(--honey)" : "var(--fern)";
     document.getElementById("ring-percent").textContent = Math.round(pct * 100) + "%";
+    captionEl.textContent = caption;
 
+    // Kategori pengeluaran teratas pada periode ini
     const catTotals = {};
-    transactions
-      .filter((t) => t.type === "expense" && isThisMonth(t.date))
+    periodTx
+      .filter((t) => t.type === "expense")
       .forEach((t) => { catTotals[t.category] = (catTotals[t.category] || 0) + Number(t.amount); });
     const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const maxVal = sorted.length ? sorted[0][1] : 0;
@@ -208,15 +376,16 @@
       });
     }
 
+    // Transaksi pada periode ini
     const recentList = document.getElementById("recent-tx-list");
     const recentEmpty = document.getElementById("recent-empty");
-    const recent = [...transactions].sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id)).slice(0, 5);
+    const sortedTx = [...periodTx].sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id)).slice(0, 8);
     recentList.innerHTML = "";
-    if (recent.length === 0) {
+    if (sortedTx.length === 0) {
       recentEmpty.hidden = false;
     } else {
       recentEmpty.hidden = true;
-      recent.forEach((t) => recentList.appendChild(renderTxListItem(t)));
+      sortedTx.forEach((t) => recentList.appendChild(renderTxListItem(t)));
     }
   }
 
@@ -237,6 +406,11 @@
       </div>
     `;
     return li;
+  }
+
+  function renderDashboard() {
+    renderHeroStats();
+    renderPeriodPanels();
   }
 
   /* ---------------- Tambah Transaksi form ---------------- */
@@ -297,7 +471,7 @@
       category: categorySelect.value,
       amount: rawAmount,
       note: document.getElementById("tx-note").value.trim(),
-      date: document.getElementById("tx-date").value || new Date().toISOString().slice(0, 10),
+      date: document.getElementById("tx-date").value || todayISO(),
     };
 
     submitBtn.disabled = true;
@@ -307,6 +481,7 @@
     try {
       await addTransactionRemote(newTx);
       transactions.push(newTx);
+      populateYearSelect();
 
       const successEl = document.getElementById("form-success");
       successEl.hidden = false;
@@ -314,7 +489,7 @@
       showToast(currentType === "income" ? "Pemasukan berhasil dicatat ✓" : "Pengeluaran berhasil dicatat ✓");
 
       txForm.reset();
-      document.getElementById("tx-date").value = new Date().toISOString().slice(0, 10);
+      document.getElementById("tx-date").value = todayISO();
       setFormType(currentType);
 
       renderDashboard();
@@ -420,6 +595,7 @@
     }
     try {
       transactions = await fetchTransactions();
+      populateYearSelect();
       renderDashboard();
       renderHistory();
       if (isManualRefresh) showToast("Data diperbarui ✓");
@@ -433,7 +609,8 @@
   function init() {
     renderGreeting();
     setFormType("income");
-    document.getElementById("tx-date").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("tx-date").value = todayISO();
+    initPeriodDefaults();
     loadAllData(false);
   }
 

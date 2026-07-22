@@ -277,6 +277,21 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
   padding:10px; border-radius:10px; font-weight:700; font-size:13.5px;
 }
 
+/* ---------------- Period filter (dashboard) ---------------- */
+.period-panel{ padding-bottom: 22px; }
+.period-bar{ display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+.period-picker{ flex-shrink:0; }
+.period-input{
+  padding: 10px 14px; border-radius: 11px; border: 1.5px solid var(--line);
+  background:#fff; font-size:14px; color: var(--pine); font-family:inherit; font-weight:600;
+  min-width: 168px;
+}
+.period-input:focus{ border-color: var(--fern); box-shadow: 0 0 0 3.5px var(--fern-light); outline:none; }
+@media (max-width: 640px){
+  .period-bar{ flex-direction:column; align-items:stretch; }
+  .period-input{ width:100%; }
+}
+
 /* ---------------- Riwayat / filters ---------------- */
 .filter-bar{ display:flex; justify-content:space-between; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
 .search-input{

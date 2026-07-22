@@ -105,11 +105,32 @@
         </div>
       </div>
 
+      <div class="panel period-panel">
+        <div class="panel-head">
+          <h2>Lihat Periode</h2>
+          <p class="panel-sub">Pilih periode untuk melihat arus kas, kategori, dan transaksi di bawah</p>
+        </div>
+        <div class="period-bar">
+          <div class="chip-group" id="period-type" role="group" aria-label="Pilih jenis periode">
+            <button class="chip is-active" data-period="daily" type="button">Harian</button>
+            <button class="chip" data-period="weekly" type="button">Mingguan</button>
+            <button class="chip" data-period="monthly" type="button">Bulanan</button>
+            <button class="chip" data-period="yearly" type="button">Tahunan</button>
+          </div>
+          <div class="period-picker">
+            <input type="date" id="period-daily" class="period-input" aria-label="Pilih tanggal" />
+            <input type="week" id="period-weekly" class="period-input" aria-label="Pilih minggu" hidden />
+            <input type="month" id="period-monthly" class="period-input" aria-label="Pilih bulan" hidden />
+            <select id="period-yearly" class="period-input" aria-label="Pilih tahun" hidden></select>
+          </div>
+        </div>
+      </div>
+
       <div class="grid-2">
         <div class="panel">
           <div class="panel-head">
-            <h2>Arus Kas Bulan Ini</h2>
-            <p class="panel-sub">Perbandingan pemasukan &amp; pengeluaran</p>
+            <h2>Arus Kas</h2>
+            <p class="panel-sub" id="period-label-cashflow">Perbandingan pemasukan &amp; pengeluaran</p>
           </div>
           <div class="ring-wrap">
             <svg id="cashflow-ring" viewBox="0 0 180 180" class="ring-svg">
@@ -118,7 +139,7 @@
             </svg>
             <div class="ring-center">
               <span class="ring-percent" id="ring-percent">0%</span>
-              <span class="ring-caption">Terpakai</span>
+              <span class="ring-caption" id="ring-caption">Terpakai</span>
             </div>
           </div>
           <div class="legend">
@@ -130,27 +151,27 @@
         <div class="panel">
           <div class="panel-head">
             <h2>Pengeluaran per Kategori</h2>
-            <p class="panel-sub">5 kategori teratas bulan ini</p>
+            <p class="panel-sub" id="period-label-category">5 kategori teratas</p>
           </div>
           <div class="bar-list" id="category-bars">
             <!-- filled by JS -->
           </div>
-          <p class="empty-hint" id="category-empty" hidden>Belum ada pengeluaran bulan ini.</p>
+          <p class="empty-hint" id="category-empty" hidden>Belum ada pengeluaran pada periode ini.</p>
         </div>
       </div>
 
       <div class="panel">
         <div class="panel-head panel-head--row">
           <div>
-            <h2>Transaksi Terbaru</h2>
-            <p class="panel-sub">5 transaksi terakhir yang kamu catat</p>
+            <h2>Transaksi</h2>
+            <p class="panel-sub" id="period-label-tx">Transaksi pada periode ini</p>
           </div>
           <button class="btn btn--ghost btn--sm" data-route="riwayat" type="button">Lihat semua</button>
         </div>
         <ul class="tx-list" id="recent-tx-list"></ul>
         <div class="empty-state" id="recent-empty" hidden>
           <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="#EEF2E9"/><path d="M20 34h24M20 26h16" stroke="#8AA394" stroke-width="2.5" stroke-linecap="round"/></svg>
-          <p>Belum ada transaksi. Yuk mulai catat pemasukan atau pengeluaran pertamamu.</p>
+          <p id="recent-empty-text">Belum ada transaksi pada periode ini.</p>
           <button class="btn btn--primary" data-route="tambah" type="button">+ Tambah Transaksi</button>
         </div>
       </div>
