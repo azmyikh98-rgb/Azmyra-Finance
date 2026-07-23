@@ -181,9 +181,9 @@ img, svg{ display: block; }
 /* ---------------- Cashflow ring ---------------- */
 .ring-wrap{ position:relative; width:180px; height:180px; margin: 6px auto 8px; }
 .ring-svg{ width:100%; height:100%; transform: rotate(-90deg); }
-.ring-track{ fill:none; stroke: var(--brick-light); stroke-width: 16; }
+.ring-track{ fill:none; stroke: var(--honey); stroke-width: 16; opacity:.55; }
 .ring-progress{
-  fill:none; stroke: var(--fern); stroke-width:16; stroke-linecap:round;
+  fill:none; stroke: var(--brick); stroke-width:16; stroke-linecap:round;
   stroke-dasharray: 452.4; stroke-dashoffset: 452.4;
   transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1);
 }
@@ -323,6 +323,9 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .period-panel{ padding-bottom: 24px; }
 .period-bar{ display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin:0; }
 .period-field{ display:flex; flex-direction:column; gap:7px; min-width:170px; }
+.period-field--week{ min-width: 340px; }
+.week-select-row{ display:flex; gap:8px; flex-wrap:wrap; }
+.week-select-row .period-input{ min-width:0; flex:1 1 100px; }
 .period-field[hidden]{ display:none; }
 .period-field label{ margin:0; font-size:12.5px; font-weight:700; color: var(--moss); }
 .period-input{

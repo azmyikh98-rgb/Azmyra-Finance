@@ -50,7 +50,7 @@
   let currentType = "income"; // untuk form Tambah
   let currentFilter = "all"; // untuk Riwayat
   let searchTerm = "";
-  let periodType = "daily"; // daily | weekly | monthly | yearly
+  let periodType = "weekly"; // daily | weekly | monthly | yearly
   let currentUser = null; // { username, displayName }
   let isConfigured = CONFIG.API_URL && CONFIG.API_URL.startsWith("http");
 
@@ -139,28 +139,30 @@
     return toISODate(new Date());
   }
 
-  function getISOWeekString(date) {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = (d.getUTCDay() + 6) % 7;
-    d.setUTCDate(d.getUTCDate() - dayNum + 3);
-    const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
-    const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
-    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
-    const weekNum = 1 + Math.round((d - firstThursday) / (7 * 24 * 3600 * 1000));
-    return `${d.getUTCFullYear()}-W${pad2(weekNum)}`;
+  function getWeeksInMonth(year, month) {
+    // Mengembalikan daftar minggu (Senin–Minggu) yang beririsan dengan bulan
+    // tertentu, diberi nomor urut 1, 2, 3, ... dari awal bulan.
+    const weeks = [];
+    const lastDay = new Date(year, month + 1, 0);
+    const cursor = new Date(year, month, 1);
+    const dow = (cursor.getDay() + 6) % 7; // Senin = 0
+    cursor.setDate(cursor.getDate() - dow);
+    let idx = 1;
+    while (cursor <= lastDay) {
+      const start = new Date(cursor);
+      const end = new Date(cursor);
+      end.setDate(end.getDate() + 6);
+      weeks.push({ index: idx, start: toISODate(start), end: toISODate(end) });
+      idx++;
+      cursor.setDate(cursor.getDate() + 7);
+    }
+    return weeks;
   }
 
-  function getISOWeekMonday(weekStr) {
-    const [yearStr, weekStr2] = weekStr.split("-W");
-    const year = Number(yearStr);
-    const week = Number(weekStr2);
-    const jan4 = new Date(year, 0, 4);
-    const jan4Day = (jan4.getDay() + 6) % 7;
-    const week1Monday = new Date(jan4);
-    week1Monday.setDate(jan4.getDate() - jan4Day);
-    const monday = new Date(week1Monday);
-    monday.setDate(week1Monday.getDate() + (week - 1) * 7);
-    return monday;
+  function formatWeekOptionLabel(week) {
+    const s = parseISODate(week.start);
+    const e = parseISODate(week.end);
+    return `Minggu ke-${week.index} (${s.getDate()}–${e.getDate()} ${MONTH_NAMES_ID[e.getMonth()]})`;
   }
 
   /* ---------------- Range periode ---------------- */
@@ -170,11 +172,12 @@
       return { start: val, end: val };
     }
     if (periodType === "weekly") {
-      const val = document.getElementById("period-weekly").value || getISOWeekString(new Date());
-      const monday = getISOWeekMonday(val);
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      return { start: toISODate(monday), end: toISODate(sunday) };
+      const year = Number(weeklyYearSelect.value) || new Date().getFullYear();
+      const month = Number(weeklyMonthSelect.value) || 0;
+      const weekIndex = Number(weeklyWeekSelect.value) || 1;
+      const weeks = getWeeksInMonth(year, month);
+      const found = weeks.find((w) => w.index === weekIndex) || weeks[0];
+      return { start: found.start, end: found.end };
     }
     if (periodType === "monthly") {
       const val = document.getElementById("period-monthly").value || todayISO().slice(0, 7);
@@ -219,18 +222,24 @@
   };
   const periodInputs = {
     daily: document.getElementById("period-daily"),
-    weekly: document.getElementById("period-weekly"),
     monthly: document.getElementById("period-monthly"),
     yearly: document.getElementById("period-yearly"),
   };
+  const weeklyMonthSelect = document.getElementById("period-weekly-month");
+  const weeklyYearSelect = document.getElementById("period-weekly-year");
+  const weeklyWeekSelect = document.getElementById("period-weekly-week");
 
   function initPeriodDefaults() {
     periodInputs.daily.value = todayISO();
-    periodInputs.weekly.value = getISOWeekString(new Date());
     periodInputs.monthly.value = todayISO().slice(0, 7);
     populateYearSelect();
-    periodTypeSelect.value = "daily";
-    showPeriodField("daily");
+    populateWeeklyMonthSelect();
+    populateWeeklyYearSelect();
+    weeklyMonthSelect.value = String(new Date().getMonth());
+    populateWeeklyWeekSelect();
+    periodType = "weekly";
+    periodTypeSelect.value = "weekly";
+    showPeriodField("weekly");
   }
 
   function populateYearSelect() {
@@ -251,6 +260,59 @@
     });
     select.value = sorted.includes(Number(prevValue)) ? prevValue : String(currentYear);
   }
+
+  function populateWeeklyMonthSelect() {
+    weeklyMonthSelect.innerHTML = "";
+    MONTH_NAMES_FULL_ID.forEach((name, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = name;
+      weeklyMonthSelect.appendChild(opt);
+    });
+  }
+
+  function populateWeeklyYearSelect() {
+    const currentYear = new Date().getFullYear();
+    const yearsFromData = transactions.map((t) => Number(t.date.slice(0, 4))).filter((y) => !isNaN(y));
+    const years = new Set([currentYear, ...yearsFromData]);
+    const minYear = Math.min(...years, currentYear - 4);
+    for (let y = currentYear; y >= minYear; y--) years.add(y);
+    const sorted = [...years].sort((a, b) => b - a);
+    const prevValue = weeklyYearSelect.value || String(currentYear);
+    weeklyYearSelect.innerHTML = "";
+    sorted.forEach((y) => {
+      const opt = document.createElement("option");
+      opt.value = String(y);
+      opt.textContent = String(y);
+      weeklyYearSelect.appendChild(opt);
+    });
+    weeklyYearSelect.value = sorted.includes(Number(prevValue)) ? prevValue : String(currentYear);
+  }
+
+  function populateWeeklyWeekSelect(preferredIndex) {
+    const year = Number(weeklyYearSelect.value);
+    const month = Number(weeklyMonthSelect.value);
+    const weeks = getWeeksInMonth(year, month);
+    weeklyWeekSelect.innerHTML = "";
+    weeks.forEach((w) => {
+      const opt = document.createElement("option");
+      opt.value = String(w.index);
+      opt.textContent = formatWeekOptionLabel(w);
+      weeklyWeekSelect.appendChild(opt);
+    });
+    const today = new Date();
+    let defaultIndex = 1;
+    if (year === today.getFullYear() && month === today.getMonth()) {
+      const todayIso = todayISO();
+      const match = weeks.find((w) => todayIso >= w.start && todayIso <= w.end);
+      if (match) defaultIndex = match.index;
+    }
+    const target = preferredIndex && weeks.some((w) => w.index === preferredIndex) ? preferredIndex : defaultIndex;
+    weeklyWeekSelect.value = String(target);
+  }
+
+  weeklyMonthSelect.addEventListener("change", () => populateWeeklyWeekSelect());
+  weeklyYearSelect.addEventListener("change", () => populateWeeklyWeekSelect());
 
   function showPeriodField(type) {
     Object.entries(periodFieldWrappers).forEach(([key, wrapper]) => { wrapper.hidden = key !== type; });
@@ -392,7 +454,8 @@
     }
 
     ringEl.style.strokeDashoffset = circumference * (1 - pct);
-    ringEl.style.stroke = pct >= 0.9 ? "var(--brick)" : pct >= 0.65 ? "var(--honey)" : "var(--fern)";
+    // Warna arc (brick) & track (honey) sudah diatur tetap di CSS supaya
+    // konsisten dengan warna dot di legend "Pemasukan" / "Pengeluaran".
     document.getElementById("ring-percent").textContent = Math.round(pct * 100) + "%";
     captionEl.textContent = caption;
 
