@@ -172,10 +172,11 @@
       return { start: val, end: val };
     }
     if (periodType === "weekly") {
-      const today = new Date();
-      const weeks = getWeeksInMonth(today.getFullYear(), today.getMonth());
-      const weekIndex = Number(document.getElementById("period-weekly-week").value) || 1;
-      const found = weeks.find((w) => w.index === weekIndex) || weeks[0];
+      const raw = document.getElementById("period-weekly-week").value;
+      const parts = raw ? raw.split("-").map(Number) : [];
+      const [y, m, idx] = parts.length === 3 ? parts : [new Date().getFullYear(), new Date().getMonth(), 1];
+      const weeks = getWeeksInMonth(y, m);
+      const found = weeks.find((w) => w.index === idx) || weeks[0];
       return { start: found.start, end: found.end };
     }
     if (periodType === "monthly") {
@@ -225,12 +226,19 @@
     yearly: document.getElementById("period-yearly"),
   };
   const weeklyWeekSelect = document.getElementById("period-weekly-week");
+  const weekMonthLabel = document.getElementById("week-picker-month-label");
+  const weekPrevBtn = document.getElementById("week-prev-month");
+  const weekNextBtn = document.getElementById("week-next-month");
+  let weekViewYear = new Date().getFullYear();
+  let weekViewMonth = new Date().getMonth();
 
   function initPeriodDefaults() {
     periodInputs.daily.value = todayISO();
     periodInputs.monthly.value = todayISO().slice(0, 7);
     populateYearSelect();
-    populateWeeklyWeekSelect();
+    weekViewYear = new Date().getFullYear();
+    weekViewMonth = new Date().getMonth();
+    renderWeekPicker();
     periodType = "weekly";
     periodTypeSelect.value = "weekly";
     showPeriodField("weekly");
@@ -255,25 +263,40 @@
     select.value = sorted.includes(Number(prevValue)) ? prevValue : String(currentYear);
   }
 
-  // Field "Pilih Minggu" cuma satu dropdown, otomatis berisi daftar minggu
-  // pada BULAN BERJALAN saja (mengikuti tanggal hari ini), supaya tetap
-  // simpel — sama seperti field "Pilih Bulan" yang cuma satu kontrol.
-  function populateWeeklyWeekSelect() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const weeks = getWeeksInMonth(year, month);
+  // Field "Pilih Minggu" tetap satu field secara visual, tapi ada tombol
+  // navigasi ‹ › untuk pindah bulan/tahun. Nilai opsi menyimpan
+  // "tahun-bulan-mingguKe" supaya getPeriodRange tidak perlu state terpisah.
+  function renderWeekPicker() {
+    const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
     weeklyWeekSelect.innerHTML = "";
     weeks.forEach((w) => {
       const opt = document.createElement("option");
-      opt.value = String(w.index);
+      opt.value = `${weekViewYear}-${weekViewMonth}-${w.index}`;
       opt.textContent = formatWeekOptionLabel(w);
       weeklyWeekSelect.appendChild(opt);
     });
-    const todayIso = todayISO();
-    const match = weeks.find((w) => todayIso >= w.start && todayIso <= w.end);
-    weeklyWeekSelect.value = String(match ? match.index : 1);
+    weekMonthLabel.textContent = `${MONTH_NAMES_FULL_ID[weekViewMonth]} ${weekViewYear}`;
+
+    const today = new Date();
+    let defaultIndex = 1;
+    if (weekViewYear === today.getFullYear() && weekViewMonth === today.getMonth()) {
+      const todayIso = todayISO();
+      const match = weeks.find((w) => todayIso >= w.start && todayIso <= w.end);
+      if (match) defaultIndex = match.index;
+    }
+    weeklyWeekSelect.value = `${weekViewYear}-${weekViewMonth}-${defaultIndex}`;
   }
+
+  weekPrevBtn.addEventListener("click", () => {
+    weekViewMonth--;
+    if (weekViewMonth < 0) { weekViewMonth = 11; weekViewYear--; }
+    renderWeekPicker();
+  });
+  weekNextBtn.addEventListener("click", () => {
+    weekViewMonth++;
+    if (weekViewMonth > 11) { weekViewMonth = 0; weekViewYear++; }
+    renderWeekPicker();
+  });
 
   function showPeriodField(type) {
     Object.entries(periodFieldWrappers).forEach(([key, wrapper]) => { wrapper.hidden = key !== type; });

@@ -323,6 +323,31 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .period-panel{ padding-bottom: 24px; }
 .period-bar{ display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin:0; }
 .period-field{ display:flex; flex-direction:column; gap:7px; min-width:170px; }
+
+.week-picker{
+  border:1.5px solid var(--line); border-radius:11px; background:#fff; overflow:hidden;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.week-picker:focus-within{ border-color: var(--fern); box-shadow: 0 0 0 3.5px var(--fern-light); }
+.week-picker-nav{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding: 7px 8px; border-bottom:1.5px solid var(--line); background: var(--mist);
+}
+.week-nav-btn{
+  background:none; border:none; padding:5px; cursor:pointer; color: var(--moss);
+  display:flex; align-items:center; justify-content:center; border-radius:7px;
+  transition: background .15s ease, color .15s ease;
+}
+.week-nav-btn:hover{ background:#fff; color: var(--fern-dk); }
+.week-nav-btn svg{ width:16px; height:16px; }
+.week-picker-month{ font-size:12.5px; font-weight:700; color: var(--pine); }
+.week-picker-select{
+  width:100%; border:none; background:#fff; padding:11px 36px 11px 14px; font-size:14px; font-weight:600;
+  color: var(--pine); font-family:inherit; height:44px; appearance:none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235B6B5E' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position: right 12px center;
+}
+.week-picker-select:focus{ outline:none; }
 .period-field[hidden]{ display:none; }
 .period-field label{ margin:0; font-size:12.5px; font-weight:700; color: var(--moss); }
 .period-input{
