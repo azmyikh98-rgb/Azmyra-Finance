@@ -38,6 +38,11 @@
 }
 
 *, *::before, *::after{ box-sizing: border-box; }
+/* Pengaman global: pastikan atribut `hidden` SELALU menyembunyikan elemen,
+   apapun aturan display lain (mis. svg{display:block}) yang berlaku di
+   elemen tersebut. Tanpa ini, CSS penulis stylesheet bisa "menang" melawan
+   default browser untuk [hidden], menyebabkan elemen tetap tampil. */
+[hidden]{ display: none !important; }
 html{ -webkit-text-size-adjust: 100%; }
 body{
   margin: 0;
