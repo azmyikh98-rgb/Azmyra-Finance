@@ -13,7 +13,7 @@
      Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
      ========================================================= */
   const CONFIG = {
-    API_URL: "https://script.google.com/macros/s/AKfycbycRx4yLrKBN1BeBOkzIDGZUj-vaBn2V5HEtthzP2pq9oJBbPJSxJBm4X7rRj8_AU-g/exec",
+    API_URL: "TEMPEL_URL_APPS_SCRIPT_KAMU_DI_SINI",
   };
 
   const AUTH_STORAGE_KEY = "azmyra_finance_user_v1";
@@ -653,8 +653,11 @@
     passwordInput.type = isHidden ? "text" : "password";
     passwordToggle.setAttribute("aria-pressed", String(isHidden));
     passwordToggle.setAttribute("aria-label", isHidden ? "Sembunyikan password" : "Tampilkan password");
-    passwordToggle.querySelector(".icon-eye").hidden = isHidden;
-    passwordToggle.querySelector(".icon-eye-off").hidden = !isHidden;
+    // .hidden = true/false TIDAK bekerja pada elemen SVG di semua browser
+    // (properti IDL "hidden" hanya direfleksikan untuk HTMLElement, bukan
+    // SVGElement) — jadi pakai toggleAttribute yang bekerja universal.
+    passwordToggle.querySelector(".icon-eye").toggleAttribute("hidden", isHidden);
+    passwordToggle.querySelector(".icon-eye-off").toggleAttribute("hidden", !isHidden);
   });
   const loginSubmitBtn = document.getElementById("login-submit");
   const loginSubmitLabel = document.getElementById("login-submit-label");
