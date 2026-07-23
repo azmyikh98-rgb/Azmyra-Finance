@@ -177,9 +177,9 @@
             <input type="date" id="period-daily" class="period-input" />
           </div>
           <div class="period-field" id="field-weekly" hidden>
-            <label for="period-weekly-week">Pilih Minggu</label>
-            <div class="week-picker">
-              <div class="week-picker-nav">
+            <label id="week-calendar-label">Pilih Minggu</label>
+            <div class="week-calendar" id="week-calendar" role="group" aria-labelledby="week-calendar-label">
+              <div class="week-calendar-nav">
                 <button type="button" class="week-nav-btn" id="week-prev-month" aria-label="Bulan sebelumnya">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
@@ -188,7 +188,7 @@
                   <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
               </div>
-              <select id="period-weekly-week" class="week-picker-select"></select>
+              <div class="week-calendar-grid" id="week-calendar-grid"></div>
             </div>
           </div>
           <div class="period-field" id="field-monthly" hidden>

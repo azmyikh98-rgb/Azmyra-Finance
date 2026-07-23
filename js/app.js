@@ -140,12 +140,12 @@
   }
 
   function getWeeksInMonth(year, month) {
-    // Mengembalikan daftar minggu (Senin–Minggu) yang beririsan dengan bulan
-    // tertentu, diberi nomor urut 1, 2, 3, ... dari awal bulan.
+    // Mengembalikan daftar minggu (Minggu–Sabtu, gaya kalender) yang
+    // beririsan dengan bulan tertentu, diberi nomor urut 1, 2, 3, ...
     const weeks = [];
     const lastDay = new Date(year, month + 1, 0);
     const cursor = new Date(year, month, 1);
-    const dow = (cursor.getDay() + 6) % 7; // Senin = 0
+    const dow = cursor.getDay(); // Minggu = 0, sudah pas jadi awal minggu
     cursor.setDate(cursor.getDate() - dow);
     let idx = 1;
     while (cursor <= lastDay) {
@@ -159,12 +159,6 @@
     return weeks;
   }
 
-  function formatWeekOptionLabel(week) {
-    const s = parseISODate(week.start);
-    const e = parseISODate(week.end);
-    return `Minggu ke-${week.index} (${s.getDate()}–${e.getDate()} ${MONTH_NAMES_ID[e.getMonth()]})`;
-  }
-
   /* ---------------- Range periode ---------------- */
   function getPeriodRange() {
     if (periodType === "daily") {
@@ -172,11 +166,8 @@
       return { start: val, end: val };
     }
     if (periodType === "weekly") {
-      const raw = document.getElementById("period-weekly-week").value;
-      const parts = raw ? raw.split("-").map(Number) : [];
-      const [y, m, idx] = parts.length === 3 ? parts : [new Date().getFullYear(), new Date().getMonth(), 1];
-      const weeks = getWeeksInMonth(y, m);
-      const found = weeks.find((w) => w.index === idx) || weeks[0];
+      const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
+      const found = weeks.find((w) => w.index === selectedWeekIndex) || weeks[0];
       return { start: found.start, end: found.end };
     }
     if (periodType === "monthly") {
@@ -225,12 +216,14 @@
     monthly: document.getElementById("period-monthly"),
     yearly: document.getElementById("period-yearly"),
   };
-  const weeklyWeekSelect = document.getElementById("period-weekly-week");
+  const weekCalendarGrid = document.getElementById("week-calendar-grid");
   const weekMonthLabel = document.getElementById("week-picker-month-label");
   const weekPrevBtn = document.getElementById("week-prev-month");
   const weekNextBtn = document.getElementById("week-next-month");
+  const DAY_LABELS_ID = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
   let weekViewYear = new Date().getFullYear();
   let weekViewMonth = new Date().getMonth();
+  let selectedWeekIndex = 1;
 
   function initPeriodDefaults() {
     periodInputs.daily.value = todayISO();
@@ -238,7 +231,7 @@
     populateYearSelect();
     weekViewYear = new Date().getFullYear();
     weekViewMonth = new Date().getMonth();
-    renderWeekPicker();
+    renderWeekCalendar();
     periodType = "weekly";
     periodTypeSelect.value = "weekly";
     showPeriodField("weekly");
@@ -263,18 +256,11 @@
     select.value = sorted.includes(Number(prevValue)) ? prevValue : String(currentYear);
   }
 
-  // Field "Pilih Minggu" tetap satu field secara visual, tapi ada tombol
-  // navigasi ‹ › untuk pindah bulan/tahun. Nilai opsi menyimpan
-  // "tahun-bulan-mingguKe" supaya getPeriodRange tidak perlu state terpisah.
-  function renderWeekPicker() {
+  // Kalender minggu: grid tanggal gaya kalender biasa. Klik tanggal manapun
+  // menyorot SELURUH baris (minggu) tempat tanggal itu berada. Minggu yang
+  // memuat hari ini otomatis tersorot saat bulan berjalan pertama dibuka.
+  function renderWeekCalendar() {
     const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
-    weeklyWeekSelect.innerHTML = "";
-    weeks.forEach((w) => {
-      const opt = document.createElement("option");
-      opt.value = `${weekViewYear}-${weekViewMonth}-${w.index}`;
-      opt.textContent = formatWeekOptionLabel(w);
-      weeklyWeekSelect.appendChild(opt);
-    });
     weekMonthLabel.textContent = `${MONTH_NAMES_FULL_ID[weekViewMonth]} ${weekViewYear}`;
 
     const today = new Date();
@@ -284,18 +270,62 @@
       const match = weeks.find((w) => todayIso >= w.start && todayIso <= w.end);
       if (match) defaultIndex = match.index;
     }
-    weeklyWeekSelect.value = `${weekViewYear}-${weekViewMonth}-${defaultIndex}`;
+    selectedWeekIndex = defaultIndex;
+
+    weekCalendarGrid.innerHTML = "";
+
+    const headerRow = document.createElement("div");
+    headerRow.className = "week-cal-row week-cal-header";
+    DAY_LABELS_ID.forEach((label) => {
+      const span = document.createElement("span");
+      span.className = "week-cal-daylabel";
+      span.textContent = label;
+      headerRow.appendChild(span);
+    });
+    weekCalendarGrid.appendChild(headerRow);
+
+    weeks.forEach((w) => {
+      const row = document.createElement("div");
+      row.className = "week-cal-row is-selectable";
+      row.dataset.weekIndex = String(w.index);
+      const startDate = parseISODate(w.start);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        const iso = toISODate(d);
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "week-cal-cell";
+        if (d.getMonth() !== weekViewMonth) cell.classList.add("is-outside");
+        if (iso === todayISO()) cell.classList.add("is-today");
+        cell.textContent = String(d.getDate());
+        row.appendChild(cell);
+      }
+      row.addEventListener("click", () => {
+        selectedWeekIndex = w.index;
+        highlightSelectedWeek();
+      });
+      weekCalendarGrid.appendChild(row);
+    });
+
+    highlightSelectedWeek();
+  }
+
+  function highlightSelectedWeek() {
+    weekCalendarGrid.querySelectorAll(".week-cal-row.is-selectable").forEach((row) => {
+      row.classList.toggle("is-selected", Number(row.dataset.weekIndex) === selectedWeekIndex);
+    });
   }
 
   weekPrevBtn.addEventListener("click", () => {
     weekViewMonth--;
     if (weekViewMonth < 0) { weekViewMonth = 11; weekViewYear--; }
-    renderWeekPicker();
+    renderWeekCalendar();
   });
   weekNextBtn.addEventListener("click", () => {
     weekViewMonth++;
     if (weekViewMonth > 11) { weekViewMonth = 0; weekViewYear++; }
-    renderWeekPicker();
+    renderWeekCalendar();
   });
 
   function showPeriodField(type) {

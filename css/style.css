@@ -329,7 +329,7 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 .week-picker:focus-within{ border-color: var(--fern); box-shadow: 0 0 0 3.5px var(--fern-light); }
-.week-picker-nav{
+.week-picker-nav, .week-calendar-nav{
   display:flex; align-items:center; justify-content:space-between; gap:8px;
   padding: 7px 8px; border-bottom:1.5px solid var(--line); background: var(--mist);
 }
@@ -341,13 +341,23 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .week-nav-btn:hover{ background:#fff; color: var(--fern-dk); }
 .week-nav-btn svg{ width:16px; height:16px; }
 .week-picker-month{ font-size:12.5px; font-weight:700; color: var(--pine); }
-.week-picker-select{
-  width:100%; border:none; background:#fff; padding:11px 36px 11px 14px; font-size:14px; font-weight:600;
-  color: var(--pine); font-family:inherit; height:44px; appearance:none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235B6B5E' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat:no-repeat; background-position: right 12px center;
+
+.week-calendar{ border:1.5px solid var(--line); border-radius:11px; background:#fff; overflow:hidden; width: 300px; max-width:100%; }
+.week-calendar-grid{ padding: 10px 10px 12px; }
+.week-cal-row{ display:grid; grid-template-columns: repeat(7, 1fr); gap:2px; border-radius:8px; }
+.week-cal-row + .week-cal-row{ margin-top:2px; }
+.week-cal-header{ margin-bottom:4px; }
+.week-cal-daylabel{ text-align:center; font-size:10.5px; font-weight:700; color: var(--ink-3); padding:4px 0; }
+.week-cal-cell{
+  border:none; background:transparent; padding:7px 0; font-size:13px; font-weight:600;
+  color: var(--pine); border-radius:6px; cursor:pointer; font-family:inherit;
 }
-.week-picker-select:focus{ outline:none; }
+.week-cal-cell.is-outside{ color: var(--ink-3); opacity:.45; }
+.week-cal-cell.is-today{ box-shadow: inset 0 0 0 1.5px var(--fern); }
+.week-cal-row.is-selectable:hover:not(.is-selected) .week-cal-cell{ background: var(--mist); }
+.week-cal-row.is-selected .week-cal-cell{ background: var(--fern-light); color: var(--fern-dk); }
+.week-cal-row.is-selected .week-cal-cell:first-child{ border-top-left-radius:8px; border-bottom-left-radius:8px; }
+.week-cal-row.is-selected .week-cal-cell:last-child{ border-top-right-radius:8px; border-bottom-right-radius:8px; }
 .period-field[hidden]{ display:none; }
 .period-field label{ margin:0; font-size:12.5px; font-weight:700; color: var(--moss); }
 .period-input{
