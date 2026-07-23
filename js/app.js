@@ -172,10 +172,9 @@
       return { start: val, end: val };
     }
     if (periodType === "weekly") {
-      const year = Number(weeklyYearSelect.value) || new Date().getFullYear();
-      const month = Number(weeklyMonthSelect.value) || 0;
-      const weekIndex = Number(weeklyWeekSelect.value) || 1;
-      const weeks = getWeeksInMonth(year, month);
+      const today = new Date();
+      const weeks = getWeeksInMonth(today.getFullYear(), today.getMonth());
+      const weekIndex = Number(document.getElementById("period-weekly-week").value) || 1;
       const found = weeks.find((w) => w.index === weekIndex) || weeks[0];
       return { start: found.start, end: found.end };
     }
@@ -225,17 +224,12 @@
     monthly: document.getElementById("period-monthly"),
     yearly: document.getElementById("period-yearly"),
   };
-  const weeklyMonthSelect = document.getElementById("period-weekly-month");
-  const weeklyYearSelect = document.getElementById("period-weekly-year");
   const weeklyWeekSelect = document.getElementById("period-weekly-week");
 
   function initPeriodDefaults() {
     periodInputs.daily.value = todayISO();
     periodInputs.monthly.value = todayISO().slice(0, 7);
     populateYearSelect();
-    populateWeeklyMonthSelect();
-    populateWeeklyYearSelect();
-    weeklyMonthSelect.value = String(new Date().getMonth());
     populateWeeklyWeekSelect();
     periodType = "weekly";
     periodTypeSelect.value = "weekly";
@@ -261,37 +255,13 @@
     select.value = sorted.includes(Number(prevValue)) ? prevValue : String(currentYear);
   }
 
-  function populateWeeklyMonthSelect() {
-    weeklyMonthSelect.innerHTML = "";
-    MONTH_NAMES_FULL_ID.forEach((name, idx) => {
-      const opt = document.createElement("option");
-      opt.value = String(idx);
-      opt.textContent = name;
-      weeklyMonthSelect.appendChild(opt);
-    });
-  }
-
-  function populateWeeklyYearSelect() {
-    const currentYear = new Date().getFullYear();
-    const yearsFromData = transactions.map((t) => Number(t.date.slice(0, 4))).filter((y) => !isNaN(y));
-    const years = new Set([currentYear, ...yearsFromData]);
-    const minYear = Math.min(...years, currentYear - 4);
-    for (let y = currentYear; y >= minYear; y--) years.add(y);
-    const sorted = [...years].sort((a, b) => b - a);
-    const prevValue = weeklyYearSelect.value || String(currentYear);
-    weeklyYearSelect.innerHTML = "";
-    sorted.forEach((y) => {
-      const opt = document.createElement("option");
-      opt.value = String(y);
-      opt.textContent = String(y);
-      weeklyYearSelect.appendChild(opt);
-    });
-    weeklyYearSelect.value = sorted.includes(Number(prevValue)) ? prevValue : String(currentYear);
-  }
-
-  function populateWeeklyWeekSelect(preferredIndex) {
-    const year = Number(weeklyYearSelect.value);
-    const month = Number(weeklyMonthSelect.value);
+  // Field "Pilih Minggu" cuma satu dropdown, otomatis berisi daftar minggu
+  // pada BULAN BERJALAN saja (mengikuti tanggal hari ini), supaya tetap
+  // simpel — sama seperti field "Pilih Bulan" yang cuma satu kontrol.
+  function populateWeeklyWeekSelect() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
     const weeks = getWeeksInMonth(year, month);
     weeklyWeekSelect.innerHTML = "";
     weeks.forEach((w) => {
@@ -300,19 +270,10 @@
       opt.textContent = formatWeekOptionLabel(w);
       weeklyWeekSelect.appendChild(opt);
     });
-    const today = new Date();
-    let defaultIndex = 1;
-    if (year === today.getFullYear() && month === today.getMonth()) {
-      const todayIso = todayISO();
-      const match = weeks.find((w) => todayIso >= w.start && todayIso <= w.end);
-      if (match) defaultIndex = match.index;
-    }
-    const target = preferredIndex && weeks.some((w) => w.index === preferredIndex) ? preferredIndex : defaultIndex;
-    weeklyWeekSelect.value = String(target);
+    const todayIso = todayISO();
+    const match = weeks.find((w) => todayIso >= w.start && todayIso <= w.end);
+    weeklyWeekSelect.value = String(match ? match.index : 1);
   }
-
-  weeklyMonthSelect.addEventListener("change", () => populateWeeklyWeekSelect());
-  weeklyYearSelect.addEventListener("change", () => populateWeeklyWeekSelect());
 
   function showPeriodField(type) {
     Object.entries(periodFieldWrappers).forEach(([key, wrapper]) => { wrapper.hidden = key !== type; });
