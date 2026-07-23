@@ -324,8 +324,20 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .period-bar{ display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin:0; }
 .period-field{ display:flex; flex-direction:column; gap:7px; min-width:170px; }
 .period-field--week{ min-width: 340px; }
-.week-select-row{ display:flex; gap:8px; flex-wrap:wrap; }
-.week-select-row .period-input{ min-width:0; flex:1 1 100px; }
+.week-select-row{
+  display:flex; align-items:stretch; height:44px;
+  border:1.5px solid var(--line); border-radius:11px; background:#fff; overflow:hidden;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.week-select-row:focus-within{ border-color: var(--fern); box-shadow: 0 0 0 3.5px var(--fern-light); }
+.week-select-row .period-input{
+  border:none; border-radius:0; background:transparent; height:auto;
+  min-width:0; border-right:1.5px solid var(--line);
+}
+.week-select-row .period-input:first-child{ flex: 1.1 1 0; }
+.week-select-row .period-input:nth-child(2){ flex: 0.8 1 0; }
+.week-select-row .period-input:last-child{ flex: 1.6 1 0; border-right:none; }
+.week-select-row .period-input:focus{ box-shadow:none; outline:none; background: var(--fern-light); }
 .period-field[hidden]{ display:none; }
 .period-field label{ margin:0; font-size:12.5px; font-weight:700; color: var(--moss); }
 .period-input{
