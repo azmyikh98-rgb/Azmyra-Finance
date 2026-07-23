@@ -220,10 +220,29 @@
   const weekMonthLabel = document.getElementById("week-picker-month-label");
   const weekPrevBtn = document.getElementById("week-prev-month");
   const weekNextBtn = document.getElementById("week-next-month");
+  const weekPickerWrap = document.querySelector(".week-picker-wrap");
+  const weekTrigger = document.getElementById("week-trigger");
+  const weekTriggerLabel = document.getElementById("week-trigger-label");
+  const weekCalendarEl = document.getElementById("week-calendar");
   const DAY_LABELS_ID = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
   let weekViewYear = new Date().getFullYear();
   let weekViewMonth = new Date().getMonth();
   let selectedWeekIndex = 1;
+
+  function openWeekCalendar() {
+    weekCalendarEl.hidden = false;
+    weekTrigger.setAttribute("aria-expanded", "true");
+  }
+  function closeWeekCalendar() {
+    weekCalendarEl.hidden = true;
+    weekTrigger.setAttribute("aria-expanded", "false");
+  }
+  weekTrigger.addEventListener("click", () => {
+    weekCalendarEl.hidden ? openWeekCalendar() : closeWeekCalendar();
+  });
+  document.addEventListener("click", (e) => {
+    if (!weekCalendarEl.hidden && !weekPickerWrap.contains(e.target)) closeWeekCalendar();
+  });
 
   function initPeriodDefaults() {
     periodInputs.daily.value = todayISO();
@@ -304,11 +323,25 @@
       row.addEventListener("click", () => {
         selectedWeekIndex = w.index;
         highlightSelectedWeek();
+        updateWeekTriggerLabel();
+        closeWeekCalendar();
       });
       weekCalendarGrid.appendChild(row);
     });
 
     highlightSelectedWeek();
+    updateWeekTriggerLabel();
+  }
+
+  function updateWeekTriggerLabel() {
+    const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
+    const found = weeks.find((w) => w.index === selectedWeekIndex) || weeks[0];
+    const s = parseISODate(found.start);
+    const e = parseISODate(found.end);
+    const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
+    weekTriggerLabel.textContent = sameMonth
+      ? `${s.getDate()}–${e.getDate()} ${MONTH_NAMES_FULL_ID[s.getMonth()]} ${s.getFullYear()}`
+      : `${s.getDate()} ${MONTH_NAMES_ID[s.getMonth()]} – ${e.getDate()} ${MONTH_NAMES_ID[e.getMonth()]} ${e.getFullYear()}`;
   }
 
   function highlightSelectedWeek() {

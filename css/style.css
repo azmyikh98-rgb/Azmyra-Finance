@@ -324,12 +324,27 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .period-bar{ display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin:0; }
 .period-field{ display:flex; flex-direction:column; gap:7px; min-width:170px; }
 
-.week-picker{
-  border:1.5px solid var(--line); border-radius:11px; background:#fff; overflow:hidden;
-  transition: border-color .15s ease, box-shadow .15s ease;
+.field-icon-input{ position:relative; display:flex; align-items:center; }
+.field-icon-input .field-icon{
+  position:absolute; left:14px; width:17px; height:17px; color: var(--moss); pointer-events:none;
 }
-.week-picker:focus-within{ border-color: var(--fern); box-shadow: 0 0 0 3.5px var(--fern-light); }
-.week-picker-nav, .week-calendar-nav{
+.field-icon-input .period-input{ padding-left:40px; }
+
+.week-picker-wrap{ position:relative; }
+.week-trigger{
+  display:flex; align-items:center; gap:10px; cursor:pointer; text-align:left;
+  padding-left:14px;
+}
+.week-trigger .field-icon{ position:static; flex-shrink:0; }
+.week-trigger:hover{ border-color: var(--fern); }
+
+.week-calendar{
+  position:absolute; top: calc(100% + 8px); left:0; z-index:30;
+  border:1.5px solid var(--line); border-radius:11px; background:#fff; overflow:hidden;
+  width: 300px; max-width: calc(100vw - 48px); box-shadow: var(--shadow-lg);
+}
+
+.week-calendar-nav{
   display:flex; align-items:center; justify-content:space-between; gap:8px;
   padding: 7px 8px; border-bottom:1.5px solid var(--line); background: var(--mist);
 }
@@ -342,7 +357,6 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .week-nav-btn svg{ width:16px; height:16px; }
 .week-picker-month{ font-size:12.5px; font-weight:700; color: var(--pine); }
 
-.week-calendar{ border:1.5px solid var(--line); border-radius:11px; background:#fff; overflow:hidden; width: 300px; max-width:100%; }
 .week-calendar-grid{ padding: 10px 10px 12px; }
 .week-cal-row{ display:grid; grid-template-columns: repeat(7, 1fr); gap:2px; border-radius:8px; }
 .week-cal-row + .week-cal-row{ margin-top:2px; }

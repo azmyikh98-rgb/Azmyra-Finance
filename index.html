@@ -174,30 +174,45 @@
 
           <div class="period-field" id="field-daily">
             <label for="period-daily">Pilih Tanggal</label>
-            <input type="date" id="period-daily" class="period-input" />
+            <div class="field-icon-input">
+              <svg class="field-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <input type="date" id="period-daily" class="period-input" />
+            </div>
           </div>
           <div class="period-field" id="field-weekly" hidden>
             <label id="week-calendar-label">Pilih Minggu</label>
-            <div class="week-calendar" id="week-calendar" role="group" aria-labelledby="week-calendar-label">
-              <div class="week-calendar-nav">
-                <button type="button" class="week-nav-btn" id="week-prev-month" aria-label="Bulan sebelumnya">
-                  <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                <span class="week-picker-month" id="week-picker-month-label">—</span>
-                <button type="button" class="week-nav-btn" id="week-next-month" aria-label="Bulan berikutnya">
-                  <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
+            <div class="week-picker-wrap">
+              <button type="button" class="period-input week-trigger" id="week-trigger" aria-haspopup="true" aria-expanded="false">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                <span id="week-trigger-label">Pilih minggu…</span>
+              </button>
+              <div class="week-calendar" id="week-calendar" hidden role="group" aria-labelledby="week-calendar-label">
+                <div class="week-calendar-nav">
+                  <button type="button" class="week-nav-btn" id="week-prev-month" aria-label="Bulan sebelumnya">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <span class="week-picker-month" id="week-picker-month-label">—</span>
+                  <button type="button" class="week-nav-btn" id="week-next-month" aria-label="Bulan berikutnya">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                </div>
+                <div class="week-calendar-grid" id="week-calendar-grid"></div>
               </div>
-              <div class="week-calendar-grid" id="week-calendar-grid"></div>
             </div>
           </div>
           <div class="period-field" id="field-monthly" hidden>
             <label for="period-monthly">Pilih Bulan</label>
-            <input type="month" id="period-monthly" class="period-input" />
+            <div class="field-icon-input">
+              <svg class="field-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <input type="month" id="period-monthly" class="period-input" />
+            </div>
           </div>
           <div class="period-field" id="field-yearly" hidden>
             <label for="period-yearly">Pilih Tahun</label>
-            <select id="period-yearly" class="period-input"></select>
+            <div class="field-icon-input">
+              <svg class="field-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <select id="period-yearly" class="period-input"></select>
+            </div>
           </div>
 
           <button type="submit" class="btn btn--primary period-apply" id="period-apply">Terapkan</button>
