@@ -324,10 +324,9 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .period-bar{ display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin:0; }
 .period-field{ display:flex; flex-direction:column; gap:7px; min-width:170px; }
 
+.field-icon{ width:17px; height:17px; color: var(--moss); flex-shrink:0; }
 .field-icon-input{ position:relative; display:flex; align-items:center; }
-.field-icon-input .field-icon{
-  position:absolute; left:14px; width:17px; height:17px; color: var(--moss); pointer-events:none;
-}
+.field-icon-input .field-icon{ position:absolute; left:14px; pointer-events:none; }
 .field-icon-input .period-input{ padding-left:40px; }
 
 .week-picker-wrap{ position:relative; }
@@ -335,7 +334,7 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
   display:flex; align-items:center; gap:10px; cursor:pointer; text-align:left;
   padding-left:14px;
 }
-.week-trigger .field-icon{ position:static; flex-shrink:0; }
+.week-trigger .field-icon{ position:static; }
 .week-trigger:hover{ border-color: var(--fern); }
 
 .week-calendar{
@@ -343,6 +342,16 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
   border:1.5px solid var(--line); border-radius:11px; background:#fff; overflow:hidden;
   width: 300px; max-width: calc(100vw - 48px); box-shadow: var(--shadow-lg);
 }
+
+.month-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; padding:12px; }
+.month-grid-btn{
+  border:none; background:transparent; padding:12px 0; font-size:13.5px; font-weight:600;
+  color: var(--pine); border-radius:8px; cursor:pointer; font-family:inherit;
+  transition: background .15s ease, color .15s ease;
+}
+.month-grid-btn:hover{ background: var(--mist); }
+.month-grid-btn.is-current{ box-shadow: inset 0 0 0 1.5px var(--fern); }
+.month-grid-btn.is-selected{ background: var(--fern-light); color: var(--fern-dk); }
 
 .week-calendar-nav{
   display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -372,6 +381,7 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .week-cal-row.is-selected .week-cal-cell{ background: var(--fern-light); color: var(--fern-dk); }
 .week-cal-row.is-selected .week-cal-cell:first-child{ border-top-left-radius:8px; border-bottom-left-radius:8px; }
 .week-cal-row.is-selected .week-cal-cell:last-child{ border-top-right-radius:8px; border-bottom-right-radius:8px; }
+.week-cal-cell.is-selected-day{ background: var(--fern); color:#fff; }
 .period-field[hidden]{ display:none; }
 .period-field label{ margin:0; font-size:12.5px; font-weight:700; color: var(--moss); }
 .period-input{
