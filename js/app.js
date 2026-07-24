@@ -603,7 +603,7 @@
     const periodTx = filterByPeriod(transactions, range);
 
     document.getElementById("period-label-cashflow").textContent = label;
-    document.getElementById("period-label-category").textContent = `Kategori teratas — ${label}`;
+    document.getElementById("period-label-category").textContent = `Diurutkan dari terbesar — ${label}`;
     document.getElementById("period-label-tx").textContent = `Transaksi — ${label}`;
     document.getElementById("recent-empty-text").textContent = `Belum ada transaksi pada ${label}.`;
 
@@ -636,7 +636,7 @@
     periodTx
       .filter((t) => t.type === "expense")
       .forEach((t) => { catTotals[t.category] = (catTotals[t.category] || 0) + Number(t.amount); });
-    const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
     const maxVal = sorted.length ? sorted[0][1] : 0;
     const barWrap = document.getElementById("category-bars");
     const emptyHint = document.getElementById("category-empty");
