@@ -162,7 +162,7 @@
   /* ---------------- Range periode ---------------- */
   function getPeriodRange() {
     if (periodType === "daily") {
-      const val = document.getElementById("period-daily").value || todayISO();
+      const val = selectedDailyDate || todayISO();
       return { start: val, end: val };
     }
     if (periodType === "weekly") {
@@ -171,8 +171,8 @@
       return { start: found.start, end: found.end };
     }
     if (periodType === "monthly") {
-      const val = document.getElementById("period-monthly").value || todayISO().slice(0, 7);
-      const [y, m] = val.split("-").map(Number);
+      const y = selectedMonthYear;
+      const m = selectedMonthIndex + 1;
       const lastDay = new Date(y, m, 0).getDate();
       return { start: `${y}-${pad2(m)}-01`, end: `${y}-${pad2(m)}-${pad2(lastDay)}` };
     }
@@ -212,45 +212,171 @@
     yearly: document.getElementById("field-yearly"),
   };
   const periodInputs = {
-    daily: document.getElementById("period-daily"),
-    monthly: document.getElementById("period-monthly"),
     yearly: document.getElementById("period-yearly"),
   };
+  const DAY_LABELS_ID = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+  /* ---- Kalender Harian ---- */
+  const dayCalendarGrid = document.getElementById("day-calendar-grid");
+  const dayMonthLabel = document.getElementById("day-picker-month-label");
+  const dayPrevBtn = document.getElementById("day-prev-month");
+  const dayNextBtn = document.getElementById("day-next-month");
+  const dayTrigger = document.getElementById("day-trigger");
+  const dayTriggerLabel = document.getElementById("day-trigger-label");
+  const dayCalendarEl = document.getElementById("day-calendar");
+  const dayPickerWrap = dayTrigger.closest(".week-picker-wrap");
+  let dayViewYear = new Date().getFullYear();
+  let dayViewMonth = new Date().getMonth();
+  let selectedDailyDate = todayISO();
+
+  function openDayCalendar() { dayCalendarEl.hidden = false; dayTrigger.setAttribute("aria-expanded", "true"); }
+  function closeDayCalendar() { dayCalendarEl.hidden = true; dayTrigger.setAttribute("aria-expanded", "false"); }
+  dayTrigger.addEventListener("click", () => (dayCalendarEl.hidden ? openDayCalendar() : closeDayCalendar()));
+
+  function renderDayCalendar() {
+    const weeks = getWeeksInMonth(dayViewYear, dayViewMonth);
+    dayMonthLabel.textContent = `${MONTH_NAMES_FULL_ID[dayViewMonth]} ${dayViewYear}`;
+    dayCalendarGrid.innerHTML = "";
+
+    const headerRow = document.createElement("div");
+    headerRow.className = "week-cal-row week-cal-header";
+    DAY_LABELS_ID.forEach((label) => {
+      const span = document.createElement("span");
+      span.className = "week-cal-daylabel";
+      span.textContent = label;
+      headerRow.appendChild(span);
+    });
+    dayCalendarGrid.appendChild(headerRow);
+
+    weeks.forEach((w) => {
+      const row = document.createElement("div");
+      row.className = "week-cal-row";
+      const startDate = parseISODate(w.start);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        const iso = toISODate(d);
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "week-cal-cell";
+        if (d.getMonth() !== dayViewMonth) cell.classList.add("is-outside");
+        if (iso === todayISO()) cell.classList.add("is-today");
+        if (iso === selectedDailyDate) cell.classList.add("is-selected-day");
+        cell.textContent = String(d.getDate());
+        cell.addEventListener("click", () => {
+          selectedDailyDate = iso;
+          updateDayTriggerLabel();
+          renderDayCalendar();
+          closeDayCalendar();
+        });
+        row.appendChild(cell);
+      }
+      dayCalendarGrid.appendChild(row);
+    });
+  }
+
+  function updateDayTriggerLabel() {
+    dayTriggerLabel.textContent = parseISODate(selectedDailyDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  }
+
+  dayPrevBtn.addEventListener("click", () => {
+    dayViewMonth--; if (dayViewMonth < 0) { dayViewMonth = 11; dayViewYear--; }
+    renderDayCalendar();
+  });
+  dayNextBtn.addEventListener("click", () => {
+    dayViewMonth++; if (dayViewMonth > 11) { dayViewMonth = 0; dayViewYear++; }
+    renderDayCalendar();
+  });
+
+  /* ---- Kalender Mingguan ---- */
   const weekCalendarGrid = document.getElementById("week-calendar-grid");
   const weekMonthLabel = document.getElementById("week-picker-month-label");
   const weekPrevBtn = document.getElementById("week-prev-month");
   const weekNextBtn = document.getElementById("week-next-month");
-  const weekPickerWrap = document.querySelector(".week-picker-wrap");
   const weekTrigger = document.getElementById("week-trigger");
   const weekTriggerLabel = document.getElementById("week-trigger-label");
   const weekCalendarEl = document.getElementById("week-calendar");
-  const DAY_LABELS_ID = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  const weekPickerWrap = weekTrigger.closest(".week-picker-wrap");
   let weekViewYear = new Date().getFullYear();
   let weekViewMonth = new Date().getMonth();
   let selectedWeekIndex = 1;
 
-  function openWeekCalendar() {
-    weekCalendarEl.hidden = false;
-    weekTrigger.setAttribute("aria-expanded", "true");
+  function openWeekCalendar() { weekCalendarEl.hidden = false; weekTrigger.setAttribute("aria-expanded", "true"); }
+  function closeWeekCalendar() { weekCalendarEl.hidden = true; weekTrigger.setAttribute("aria-expanded", "false"); }
+  weekTrigger.addEventListener("click", () => (weekCalendarEl.hidden ? openWeekCalendar() : closeWeekCalendar()));
+
+  /* ---- Kalender Bulanan ---- */
+  const monthGrid = document.getElementById("month-grid");
+  const monthYearLabel = document.getElementById("month-picker-year-label");
+  const monthPrevBtn = document.getElementById("month-prev-year");
+  const monthNextBtn = document.getElementById("month-next-year");
+  const monthTrigger = document.getElementById("month-trigger");
+  const monthTriggerLabel = document.getElementById("month-trigger-label");
+  const monthCalendarEl = document.getElementById("month-calendar");
+  const monthPickerWrap = monthTrigger.closest(".week-picker-wrap");
+  let monthViewYear = new Date().getFullYear();
+  let selectedMonthYear = new Date().getFullYear();
+  let selectedMonthIndex = new Date().getMonth();
+
+  function openMonthCalendar() { monthCalendarEl.hidden = false; monthTrigger.setAttribute("aria-expanded", "true"); }
+  function closeMonthCalendar() { monthCalendarEl.hidden = true; monthTrigger.setAttribute("aria-expanded", "false"); }
+  monthTrigger.addEventListener("click", () => (monthCalendarEl.hidden ? openMonthCalendar() : closeMonthCalendar()));
+
+  function renderMonthGrid() {
+    monthYearLabel.textContent = String(monthViewYear);
+    monthGrid.innerHTML = "";
+    MONTH_NAMES_ID.forEach((name, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "month-grid-btn";
+      const today = new Date();
+      if (monthViewYear === today.getFullYear() && idx === today.getMonth()) btn.classList.add("is-current");
+      if (monthViewYear === selectedMonthYear && idx === selectedMonthIndex) btn.classList.add("is-selected");
+      btn.textContent = name;
+      btn.addEventListener("click", () => {
+        selectedMonthYear = monthViewYear;
+        selectedMonthIndex = idx;
+        updateMonthTriggerLabel();
+        renderMonthGrid();
+        closeMonthCalendar();
+      });
+      monthGrid.appendChild(btn);
+    });
   }
-  function closeWeekCalendar() {
-    weekCalendarEl.hidden = true;
-    weekTrigger.setAttribute("aria-expanded", "false");
+
+  function updateMonthTriggerLabel() {
+    monthTriggerLabel.textContent = `${MONTH_NAMES_FULL_ID[selectedMonthIndex]} ${selectedMonthYear}`;
   }
-  weekTrigger.addEventListener("click", () => {
-    weekCalendarEl.hidden ? openWeekCalendar() : closeWeekCalendar();
-  });
+
+  monthPrevBtn.addEventListener("click", () => { monthViewYear--; renderMonthGrid(); });
+  monthNextBtn.addEventListener("click", () => { monthViewYear++; renderMonthGrid(); });
+
+  // Satu listener global untuk menutup popover manapun saat klik di luar area-nya.
   document.addEventListener("click", (e) => {
+    if (!dayCalendarEl.hidden && !dayPickerWrap.contains(e.target)) closeDayCalendar();
     if (!weekCalendarEl.hidden && !weekPickerWrap.contains(e.target)) closeWeekCalendar();
+    if (!monthCalendarEl.hidden && !monthPickerWrap.contains(e.target)) closeMonthCalendar();
   });
 
   function initPeriodDefaults() {
-    periodInputs.daily.value = todayISO();
-    periodInputs.monthly.value = todayISO().slice(0, 7);
     populateYearSelect();
+
+    dayViewYear = new Date().getFullYear();
+    dayViewMonth = new Date().getMonth();
+    selectedDailyDate = todayISO();
+    renderDayCalendar();
+    updateDayTriggerLabel();
+
     weekViewYear = new Date().getFullYear();
     weekViewMonth = new Date().getMonth();
     renderWeekCalendar();
+
+    monthViewYear = new Date().getFullYear();
+    selectedMonthYear = new Date().getFullYear();
+    selectedMonthIndex = new Date().getMonth();
+    renderMonthGrid();
+    updateMonthTriggerLabel();
+
     periodType = "weekly";
     periodTypeSelect.value = "weekly";
     showPeriodField("weekly");
