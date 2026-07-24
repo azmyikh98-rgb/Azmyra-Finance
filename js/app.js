@@ -216,9 +216,31 @@
   };
   const DAY_LABELS_ID = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
+  function populateMonthYearSelects(monthSelect, yearSelect) {
+    monthSelect.innerHTML = "";
+    MONTH_NAMES_FULL_ID.forEach((name, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = name;
+      monthSelect.appendChild(opt);
+    });
+    const currentYear = new Date().getFullYear();
+    const yearsFromData = transactions.map((t) => Number(t.date.slice(0, 4))).filter((y) => !isNaN(y));
+    const minYear = Math.min(currentYear - 4, ...yearsFromData, currentYear);
+    const maxYear = Math.max(currentYear + 1, ...yearsFromData, currentYear);
+    yearSelect.innerHTML = "";
+    for (let y = maxYear; y >= minYear; y--) {
+      const opt = document.createElement("option");
+      opt.value = String(y);
+      opt.textContent = String(y);
+      yearSelect.appendChild(opt);
+    }
+  }
+
   /* ---- Kalender Harian ---- */
   const dayCalendarGrid = document.getElementById("day-calendar-grid");
-  const dayMonthLabel = document.getElementById("day-picker-month-label");
+  const dayMonthSelect = document.getElementById("day-month-select");
+  const dayYearSelect = document.getElementById("day-year-select");
   const dayPrevBtn = document.getElementById("day-prev-month");
   const dayNextBtn = document.getElementById("day-next-month");
   const dayTrigger = document.getElementById("day-trigger");
@@ -233,9 +255,13 @@
   function closeDayCalendar() { dayCalendarEl.hidden = true; dayTrigger.setAttribute("aria-expanded", "false"); }
   dayTrigger.addEventListener("click", () => (dayCalendarEl.hidden ? openDayCalendar() : closeDayCalendar()));
 
+  dayMonthSelect.addEventListener("change", () => { dayViewMonth = Number(dayMonthSelect.value); renderDayCalendar(); });
+  dayYearSelect.addEventListener("change", () => { dayViewYear = Number(dayYearSelect.value); renderDayCalendar(); });
+
   function renderDayCalendar() {
     const weeks = getWeeksInMonth(dayViewYear, dayViewMonth);
-    dayMonthLabel.textContent = `${MONTH_NAMES_FULL_ID[dayViewMonth]} ${dayViewYear}`;
+    dayMonthSelect.value = String(dayViewMonth);
+    dayYearSelect.value = String(dayViewYear);
     dayCalendarGrid.innerHTML = "";
 
     const headerRow = document.createElement("div");
@@ -290,7 +316,8 @@
 
   /* ---- Kalender Mingguan ---- */
   const weekCalendarGrid = document.getElementById("week-calendar-grid");
-  const weekMonthLabel = document.getElementById("week-picker-month-label");
+  const weekMonthSelect = document.getElementById("week-month-select");
+  const weekYearSelect = document.getElementById("week-year-select");
   const weekPrevBtn = document.getElementById("week-prev-month");
   const weekNextBtn = document.getElementById("week-next-month");
   const weekTrigger = document.getElementById("week-trigger");
@@ -304,6 +331,9 @@
   function openWeekCalendar() { weekCalendarEl.hidden = false; weekTrigger.setAttribute("aria-expanded", "true"); }
   function closeWeekCalendar() { weekCalendarEl.hidden = true; weekTrigger.setAttribute("aria-expanded", "false"); }
   weekTrigger.addEventListener("click", () => (weekCalendarEl.hidden ? openWeekCalendar() : closeWeekCalendar()));
+
+  weekMonthSelect.addEventListener("change", () => { weekViewMonth = Number(weekMonthSelect.value); renderWeekCalendar(); });
+  weekYearSelect.addEventListener("change", () => { weekViewYear = Number(weekYearSelect.value); renderWeekCalendar(); });
 
   /* ---- Kalender Bulanan ---- */
   const monthGrid = document.getElementById("month-grid");
@@ -360,6 +390,8 @@
 
   function initPeriodDefaults() {
     populateYearSelect();
+    populateMonthYearSelects(dayMonthSelect, dayYearSelect);
+    populateMonthYearSelects(weekMonthSelect, weekYearSelect);
 
     dayViewYear = new Date().getFullYear();
     dayViewMonth = new Date().getMonth();
@@ -406,7 +438,8 @@
   // memuat hari ini otomatis tersorot saat bulan berjalan pertama dibuka.
   function renderWeekCalendar() {
     const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
-    weekMonthLabel.textContent = `${MONTH_NAMES_FULL_ID[weekViewMonth]} ${weekViewYear}`;
+    weekMonthSelect.value = String(weekViewMonth);
+    weekYearSelect.value = String(weekViewYear);
 
     const today = new Date();
     let defaultIndex = 1;
