@@ -676,7 +676,33 @@
       recentEmpty.hidden = true;
       sortedTx.forEach((t) => recentList.appendChild(renderTxListItem(t)));
     }
+
+    equalizeGridCards();
   }
+
+  // Menyamakan tinggi 2 kartu di grid-2 (Arus Kas & Pengeluaran per Kategori)
+  // lewat JS, supaya selalu pas berapapun isinya — tidak bergantung pada
+  // perilaku "stretch" CSS Grid yang di beberapa kondisi ternyata tidak
+  // konsisten menyamakan tinggi otomatis.
+  function equalizeGridCards() {
+    const cards = document.querySelectorAll(".grid-2 > .panel");
+    if (cards.length < 2) return;
+    cards.forEach((c) => { c.style.height = "auto"; });
+    requestAnimationFrame(() => {
+      if (window.innerWidth <= 860) {
+        cards.forEach((c) => { c.style.height = ""; });
+        return;
+      }
+      let max = 0;
+      cards.forEach((c) => { max = Math.max(max, c.offsetHeight); });
+      cards.forEach((c) => { c.style.height = max + "px"; });
+    });
+  }
+
+  window.addEventListener("resize", () => {
+    clearTimeout(equalizeGridCards._t);
+    equalizeGridCards._t = setTimeout(equalizeGridCards, 150);
+  });
 
   function renderTxListItem(t) {
     const cat = CATEGORY_LOOKUP[t.category] || { label: t.category, icon: "•" };
