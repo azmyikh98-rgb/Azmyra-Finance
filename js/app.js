@@ -13,7 +13,7 @@
      Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
      ========================================================= */
   const CONFIG = {
-    API_URL: "TEMPEL_URL_APPS_SCRIPT_KAMU_DI_SINI",
+    API_URL: "https://script.google.com/macros/s/AKfycbycRx4yLrKBN1BeBOkzIDGZUj-vaBn2V5HEtthzP2pq9oJBbPJSxJBm4X7rRj8_AU-g/exec",
   };
 
   const AUTH_STORAGE_KEY = "azmyra_finance_user_v1";
