@@ -6,6 +6,13 @@
 <title>Azmyra Finance — Catat Uangmu, Tenangkan Harimu</title>
 <meta name="description" content="Azmyra Finance — aplikasi pencatat pemasukan dan pengeluaran keluarga yang ramah dan mudah dipakai." />
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#223527" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Azmyra" />
+<link rel="apple-touch-icon" href="assets/icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -98,6 +105,10 @@
       <button class="nav-item nav-item--ghost" id="reset-data" type="button" title="Muat ulang data terbaru dari Spreadsheet">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 1 0 3-6.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 4v5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Muat Ulang Data</span>
+      </button>
+      <button class="nav-item nav-item--ghost" id="notif-btn" type="button" title="Aktifkan notifikasi transaksi baru">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span id="notif-btn-label">Aktifkan Notifikasi</span>
       </button>
       <button class="nav-item nav-item--ghost" id="logout-btn" type="button" title="Keluar dari akun">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -395,6 +406,9 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script src="js/firebase-config.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
