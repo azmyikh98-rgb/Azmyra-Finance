@@ -10,12 +10,12 @@
    (file itu tidak bisa membaca file ini karena berjalan sebagai service worker terpisah).
    ========================================================= */
 const FIREBASE_CONFIG = {
-  apiKey: "TEMPEL_API_KEY",
-  authDomain: "TEMPEL_AUTH_DOMAIN",
-  projectId: "TEMPEL_PROJECT_ID",
-  storageBucket: "TEMPEL_STORAGE_BUCKET",
-  messagingSenderId: "TEMPEL_SENDER_ID",
-  appId: "TEMPEL_APP_ID",
+  apiKey: "AIzaSyDtLyGrA65UhUWXfLtTeahi7HNdcoc2BFs",
+  authDomain: "azmyra-finance.firebaseapp.com",
+  projectId: "azmyra-finance",
+  storageBucket: "azmyra-finance.firebasestorage.app",
+  messagingSenderId: "587100493197",
+  appId: "1:587100493197:web:38227c7173bee63f1c19c4",
 };
 
-const FIREBASE_VAPID_KEY = "TEMPEL_VAPID_KEY";
+const FIREBASE_VAPID_KEY = "BIPJ8UFAZ13d2G88tzzGVuNuf066qInGAGNZNOfHyP0KOCqEmguBNb-npYJHC36mrFMt5Uym7VbW3uI6zonhNF8";
