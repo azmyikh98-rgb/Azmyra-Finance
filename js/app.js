@@ -13,7 +13,7 @@
      Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
      ========================================================= */
   const CONFIG = {
-    API_URL: "https://script.google.com/macros/s/AKfycbycRx4yLrKBN1BeBOkzIDGZUj-vaBn2V5HEtthzP2pq9oJBbPJSxJBm4X7rRj8_AU-g/exec",
+    API_URL: "TEMPEL_URL_APPS_SCRIPT_KAMU_DI_SINI",
   };
 
   const AUTH_STORAGE_KEY = "azmyra_finance_user_v1";
@@ -960,6 +960,105 @@
     }
   });
 
+  /* ---------------- Notifikasi Push (Firebase Cloud Messaging) ---------------- */
+  const NOTIF_REGISTERED_KEY = "azmyra_finance_notif_registered_v1";
+  const notifBtn = document.getElementById("notif-btn");
+  const notifBtnLabel = document.getElementById("notif-btn-label");
+  const isFirebaseConfigured =
+    typeof FIREBASE_CONFIG !== "undefined" &&
+    FIREBASE_CONFIG.apiKey &&
+    !FIREBASE_CONFIG.apiKey.startsWith("TEMPEL_");
+  let messagingInstance = null;
+
+  function updateNotifButtonLabel() {
+    if (!isFirebaseConfigured) {
+      notifBtnLabel.textContent = "Notifikasi (belum disetel)";
+      return;
+    }
+    if (typeof Notification === "undefined") {
+      notifBtnLabel.textContent = "Notifikasi tidak didukung";
+      return;
+    }
+    if (Notification.permission === "granted" && localStorage.getItem(NOTIF_REGISTERED_KEY)) {
+      notifBtnLabel.textContent = "Notifikasi Aktif ✓";
+    } else if (Notification.permission === "denied") {
+      notifBtnLabel.textContent = "Notifikasi Diblokir";
+    } else {
+      notifBtnLabel.textContent = "Aktifkan Notifikasi";
+    }
+  }
+
+  async function initNotifications() {
+    updateNotifButtonLabel();
+    if (!isFirebaseConfigured) return;
+    if (typeof Notification === "undefined" || !("serviceWorker" in navigator)) return;
+
+    try {
+      const app = firebase.initializeApp(FIREBASE_CONFIG);
+      messagingInstance = firebase.messaging();
+      const swReg = await navigator.serviceWorker.register("firebase-messaging-sw.js");
+
+      // Kalau izin sudah pernah diberikan sebelumnya, langsung daftarkan ulang
+      // token (token FCM bisa berubah dari waktu ke waktu).
+      if (Notification.permission === "granted") {
+        await registerFcmToken(swReg);
+      }
+
+      // Notifikasi saat aplikasi sedang dibuka (foreground) — tampil sebagai toast.
+      messagingInstance.onMessage((payload) => {
+        const title = (payload.notification && payload.notification.title) || "Transaksi baru";
+        const body = (payload.notification && payload.notification.body) || "";
+        showToast(`${title} — ${body}`);
+        loadAllData(false);
+      });
+    } catch (err) {
+      console.error("Gagal menyiapkan notifikasi:", err);
+    }
+  }
+
+  async function registerFcmToken(swReg) {
+    try {
+      const token = await messagingInstance.getToken({
+        vapidKey: FIREBASE_VAPID_KEY,
+        serviceWorkerRegistration: swReg,
+      });
+      if (!token) return;
+      await fetch(CONFIG.API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "registerDevice", token, username: currentUser ? currentUser.username : "" }),
+      });
+      localStorage.setItem(NOTIF_REGISTERED_KEY, "1");
+      updateNotifButtonLabel();
+    } catch (err) {
+      console.error("Gagal mendaftarkan device untuk notifikasi:", err);
+    }
+  }
+
+  notifBtn.addEventListener("click", async () => {
+    if (!isFirebaseConfigured) {
+      showToast("Firebase belum disetel. Lihat README bagian Notifikasi Push.");
+      return;
+    }
+    if (typeof Notification === "undefined") {
+      showToast("Browser ini tidak mendukung notifikasi push.");
+      return;
+    }
+    if (Notification.permission === "denied") {
+      showToast("Notifikasi diblokir. Aktifkan lewat pengaturan browser/HP kamu.");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      showToast("Izin notifikasi tidak diberikan.");
+      updateNotifButtonLabel();
+      return;
+    }
+    const swReg = await navigator.serviceWorker.getRegistration();
+    await registerFcmToken(swReg || (await navigator.serviceWorker.register("firebase-messaging-sw.js")));
+    showToast("Notifikasi diaktifkan ✓");
+  });
+
   function enterApp() {
     document.getElementById("login-screen").hidden = true;
     document.getElementById("app-shell").hidden = false;
@@ -969,6 +1068,7 @@
     document.getElementById("tx-date").value = todayISO();
     initPeriodDefaults();
     loadAllData(false);
+    initNotifications();
   }
 
   /* ---------------- Load data transaksi ---------------- */
