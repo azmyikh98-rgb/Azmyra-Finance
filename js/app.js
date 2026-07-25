@@ -241,8 +241,6 @@
   const dayCalendarGrid = document.getElementById("day-calendar-grid");
   const dayMonthSelect = document.getElementById("day-month-select");
   const dayYearSelect = document.getElementById("day-year-select");
-  const dayPrevBtn = document.getElementById("day-prev-month");
-  const dayNextBtn = document.getElementById("day-next-month");
   const dayTrigger = document.getElementById("day-trigger");
   const dayTriggerLabel = document.getElementById("day-trigger-label");
   const dayCalendarEl = document.getElementById("day-calendar");
@@ -305,21 +303,10 @@
     dayTriggerLabel.textContent = parseISODate(selectedDailyDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
   }
 
-  dayPrevBtn.addEventListener("click", () => {
-    dayViewMonth--; if (dayViewMonth < 0) { dayViewMonth = 11; dayViewYear--; }
-    renderDayCalendar();
-  });
-  dayNextBtn.addEventListener("click", () => {
-    dayViewMonth++; if (dayViewMonth > 11) { dayViewMonth = 0; dayViewYear++; }
-    renderDayCalendar();
-  });
-
   /* ---- Kalender Mingguan ---- */
   const weekCalendarGrid = document.getElementById("week-calendar-grid");
   const weekMonthSelect = document.getElementById("week-month-select");
   const weekYearSelect = document.getElementById("week-year-select");
-  const weekPrevBtn = document.getElementById("week-prev-month");
-  const weekNextBtn = document.getElementById("week-next-month");
   const weekTrigger = document.getElementById("week-trigger");
   const weekTriggerLabel = document.getElementById("week-trigger-label");
   const weekCalendarEl = document.getElementById("week-calendar");
@@ -508,17 +495,6 @@
       row.classList.toggle("is-selected", Number(row.dataset.weekIndex) === selectedWeekIndex);
     });
   }
-
-  weekPrevBtn.addEventListener("click", () => {
-    weekViewMonth--;
-    if (weekViewMonth < 0) { weekViewMonth = 11; weekViewYear--; }
-    renderWeekCalendar();
-  });
-  weekNextBtn.addEventListener("click", () => {
-    weekViewMonth++;
-    if (weekViewMonth > 11) { weekViewMonth = 0; weekViewYear++; }
-    renderWeekCalendar();
-  });
 
   function showPeriodField(type) {
     Object.entries(periodFieldWrappers).forEach(([key, wrapper]) => { wrapper.hidden = key !== type; });
