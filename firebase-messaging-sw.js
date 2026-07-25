@@ -12,12 +12,12 @@ importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
 firebase.initializeApp({
-  apiKey: "TEMPEL_API_KEY",
-  authDomain: "TEMPEL_AUTH_DOMAIN",
-  projectId: "TEMPEL_PROJECT_ID",
-  storageBucket: "TEMPEL_STORAGE_BUCKET",
-  messagingSenderId: "TEMPEL_SENDER_ID",
-  appId: "TEMPEL_APP_ID",
+  apiKey: "AIzaSyDtLyGrA65UhUWXfLtTeahi7HNdcoc2BFs",
+  authDomain: "azmyra-finance.firebaseapp.com",
+  projectId: "azmyra-finance",
+  storageBucket: "azmyra-finance.firebasestorage.app",
+  messagingSenderId: "587100493197",
+  appId: "1:587100493197:web:38227c7173bee63f1c19c4",
 });
 
 const messaging = firebase.messaging();
