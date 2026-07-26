@@ -101,6 +101,37 @@
     if (!json.success) throw new Error(json.error || "Gagal menghapus transaksi");
   }
 
+  async function addCategoryRemote(type, label, icon) {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "addCategory", type, label, icon }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Gagal menambah kategori");
+    return json.category;
+  }
+
+  async function updateCategoryRemote(type, id, label, icon) {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "updateCategory", type, id, label, icon }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Gagal memperbarui kategori");
+  }
+
+  async function deleteCategoryRemote(type, id) {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "deleteCategory", type, id }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Gagal menghapus kategori");
+  }
+
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
@@ -807,6 +838,120 @@
     }
   });
 
+  /* ---------------- Kelola Kategori ---------------- */
+  let categoryManageType = "income";
+  const catTypeButtons = document.querySelectorAll("[data-cattype]");
+  const categoryForm = document.getElementById("category-form");
+  const catIconInput = document.getElementById("cat-icon");
+  const catLabelInput = document.getElementById("cat-label");
+  const catSubmitBtn = document.getElementById("cat-submit");
+  const catSubmitLabel = document.getElementById("cat-submit-label");
+  const catManageList = document.getElementById("cat-manage-list");
+  const catManageEmpty = document.getElementById("cat-manage-empty");
+  const catListSub = document.getElementById("cat-list-sub");
+
+  catTypeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      categoryManageType = btn.dataset.cattype;
+      catTypeButtons.forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle("is-active", active);
+        b.setAttribute("aria-selected", String(active));
+      });
+      renderCategoryManageList();
+    });
+  });
+
+  function renderCategoryManageList() {
+    const list = CATEGORIES[categoryManageType] || [];
+    catListSub.textContent = categoryManageType === "income" ? "Kategori Pemasukan" : "Kategori Pengeluaran";
+    catManageList.innerHTML = "";
+    if (list.length === 0) {
+      catManageEmpty.hidden = false;
+      return;
+    }
+    catManageEmpty.hidden = true;
+    list.forEach((cat) => {
+      const li = document.createElement("li");
+      li.className = "cat-manage-item";
+      li.innerHTML = `
+        <input type="text" class="cat-manage-input cat-edit-icon" value="${escapeHtml(cat.icon)}" maxlength="4" />
+        <input type="text" class="cat-manage-input cat-edit-label" value="${escapeHtml(cat.label)}" />
+        <button type="button" class="btn btn--ghost btn--sm cat-save-btn">Simpan</button>
+        <button type="button" class="row-delete cat-delete-btn" title="Hapus kategori">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      `;
+      const iconInput = li.querySelector(".cat-edit-icon");
+      const labelInput = li.querySelector(".cat-edit-label");
+      const type = categoryManageType;
+
+      li.querySelector(".cat-save-btn").addEventListener("click", async () => {
+        const newLabel = labelInput.value.trim();
+        const newIcon = iconInput.value.trim() || "🏷";
+        if (!newLabel) { showToast("Nama kategori tidak boleh kosong."); return; }
+        try {
+          await updateCategoryRemote(type, cat.id, newLabel, newIcon);
+          cat.label = newLabel;
+          cat.icon = newIcon;
+          rebuildCategoryLookup();
+          populateCategories(currentType);
+          renderHistory();
+          renderDashboard();
+          showToast("Kategori diperbarui ✓");
+        } catch (err) {
+          console.error(err);
+          showToast("Gagal memperbarui kategori.");
+        }
+      });
+
+      li.querySelector(".cat-delete-btn").addEventListener("click", async () => {
+        if (!confirm(`Hapus kategori "${cat.label}"? Transaksi lama yang memakai kategori ini tetap tersimpan.`)) return;
+        try {
+          await deleteCategoryRemote(type, cat.id);
+          CATEGORIES[type] = CATEGORIES[type].filter((c) => c.id !== cat.id);
+          rebuildCategoryLookup();
+          renderCategoryManageList();
+          populateCategories(currentType);
+          renderHistory();
+          renderDashboard();
+          showToast("Kategori dihapus");
+        } catch (err) {
+          console.error(err);
+          showToast("Gagal menghapus kategori.");
+        }
+      });
+
+      catManageList.appendChild(li);
+    });
+  }
+
+  categoryForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const label = catLabelInput.value.trim();
+    const icon = catIconInput.value.trim() || "🏷️";
+    if (!label) { showToast("Nama kategori wajib diisi."); return; }
+
+    catSubmitBtn.disabled = true;
+    const original = catSubmitLabel.textContent;
+    catSubmitLabel.textContent = "Menyimpan…";
+    try {
+      const newCat = await addCategoryRemote(categoryManageType, label, icon);
+      CATEGORIES[categoryManageType].push(newCat);
+      rebuildCategoryLookup();
+      categoryForm.reset();
+      renderCategoryManageList();
+      populateCategories(currentType);
+      showToast("Kategori ditambahkan ✓");
+    } catch (err) {
+      console.error(err);
+      showToast("Gagal menambah kategori.");
+    } finally {
+      catSubmitBtn.disabled = false;
+      catSubmitLabel.textContent = original;
+    }
+  });
+
   /* ---------------- Riwayat ---------------- */
   const searchInput = document.getElementById("search-tx");
   const filterChips = document.querySelectorAll("#filter-type .chip");
@@ -1068,6 +1213,7 @@
       CATEGORIES = result.categories;
       rebuildCategoryLookup();
       populateCategories(currentType);
+      renderCategoryManageList();
       populateYearSelect();
       renderDashboard();
       renderHistory();
