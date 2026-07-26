@@ -18,29 +18,16 @@
 
   const AUTH_STORAGE_KEY = "azmyra_finance_user_v1";
 
-  const CATEGORIES = {
-    income: [
-      { id: "gaji", label: "Gaji", icon: "💼" },
-      { id: "bonus", label: "Bonus / THR", icon: "🎁" },
-      { id: "usaha", label: "Usaha", icon: "🧾" },
-      { id: "investasi", label: "Investasi", icon: "📈" },
-      { id: "hadiah", label: "Hadiah", icon: "💌" },
-      { id: "lainnya-in", label: "Lainnya", icon: "✨" },
-    ],
-    expense: [
-      { id: "makanan", label: "Makanan & Minuman", icon: "🍜" },
-      { id: "transport", label: "Transportasi", icon: "🚗" },
-      { id: "belanja", label: "Belanja Rumah", icon: "🛒" },
-      { id: "tagihan", label: "Tagihan & Listrik", icon: "💡" },
-      { id: "pendidikan", label: "Pendidikan", icon: "📚" },
-      { id: "kesehatan", label: "Kesehatan", icon: "🩺" },
-      { id: "hiburan", label: "Hiburan", icon: "🎬" },
-      { id: "lainnya-out", label: "Lainnya", icon: "📦" },
-    ],
-  };
+  // Kategori TIDAK lagi hardcode di sini — diambil dari spreadsheet (sheet
+  // "KategoriPemasukan" & "KategoriPengeluaran") lewat Apps Script setiap
+  // kali data dimuat. Isi array kosong sebagai default sebelum data datang.
+  let CATEGORIES = { income: [], expense: [] };
+  let CATEGORY_LOOKUP = {};
 
-  const CATEGORY_LOOKUP = {};
-  [...CATEGORIES.income, ...CATEGORIES.expense].forEach((c) => (CATEGORY_LOOKUP[c.id] = c));
+  function rebuildCategoryLookup() {
+    CATEGORY_LOOKUP = {};
+    [...CATEGORIES.income, ...CATEGORIES.expense].forEach((c) => (CATEGORY_LOOKUP[c.id] = c));
+  }
 
   const MONTH_NAMES_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
   const MONTH_NAMES_FULL_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -89,7 +76,9 @@
     if (!res.ok) throw new Error("Gagal memuat data (" + res.status + ")");
     const json = await res.json();
     if (!json.success) throw new Error(json.error || "Gagal memuat data");
-    return (json.data || []).map((t) => ({ ...t, date: normalizeDate(t.date) }));
+    const transactions = (json.data || []).map((t) => ({ ...t, date: normalizeDate(t.date) }));
+    const categories = json.categories || { income: [], expense: [] };
+    return { transactions, categories };
   }
 
   async function addTransactionRemote(tx) {
@@ -1074,7 +1063,11 @@
   /* ---------------- Load data transaksi ---------------- */
   async function loadAllData(isManualRefresh) {
     try {
-      transactions = await fetchTransactions();
+      const result = await fetchTransactions();
+      transactions = result.transactions;
+      CATEGORIES = result.categories;
+      rebuildCategoryLookup();
+      populateCategories(currentType);
       populateYearSelect();
       renderDashboard();
       renderHistory();
