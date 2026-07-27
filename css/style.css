@@ -276,23 +276,62 @@ img, svg{ display: block; }
 
 .cat-manage-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
 .cat-manage-item{
-  display:flex; align-items:center; gap:10px; padding:10px;
+  display:flex; align-items:center; gap:12px; padding:11px 14px;
   border:1.5px solid var(--line); border-radius:12px;
 }
+.cat-view-icon{ font-size:18px; flex-shrink:0; width:26px; text-align:center; }
+.cat-view-label{
+  flex:1; min-width:0; font-weight:600; font-size:14px; color:var(--pine);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cat-edit-fields{ flex:1; display:flex; gap:8px; min-width:0; }
+.cat-edit-fields[hidden]{ display:none; }
+/* Aturan input[type=text] global punya specificity lebih tinggi dari class
+   biasa (attribute+tag > class tunggal), jadi override lebar di sini perlu
+   digabung dengan parent class + !important supaya benar-benar menang. */
+.cat-edit-fields input.cat-edit-icon{ width:52px !important; flex-shrink:0; text-align:center; }
+.cat-edit-fields input.cat-edit-label{ flex:1; min-width:0; width:auto !important; }
 .cat-manage-input{
   border:1.5px solid var(--line); border-radius:9px; padding:9px 10px; font-size:13.5px;
   font-family:inherit; color:var(--pine); background:#fff;
 }
 .cat-manage-input:focus{ border-color: var(--fern); box-shadow: 0 0 0 3px var(--fern-light); outline:none; }
-.cat-edit-icon{ width:52px; text-align:center; flex-shrink:0; }
-.cat-edit-label{ flex:1; min-width:0; }
-.cat-manage-item .btn--sm{ flex-shrink:0; }
-.cat-manage-item .row-delete{ flex-shrink:0; }
-@media (max-width: 560px){
-  .cat-manage-item{ flex-wrap:wrap; }
-  .cat-edit-label{ flex:1 1 100%; order:1; }
-  .cat-edit-icon{ order:2; }
+.cat-actions{ display:flex; gap:2px; flex-shrink:0; }
+.cat-actions[hidden]{ display:none; }
+.icon-btn-sm{
+  background:none; border:none; padding:7px; cursor:pointer; color: var(--moss);
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  transition: background .15s ease, color .15s ease;
 }
+.icon-btn-sm svg{ width:16px; height:16px; }
+.icon-btn-sm:hover{ background: var(--mist); color: var(--fern-dk); }
+.icon-btn-sm.cat-delete-btn:hover{ color: var(--brick); background: var(--brick-light); }
+.icon-btn-sm.cat-save-btn:hover{ color: var(--fern-dk); background: var(--fern-light); }
+@media (max-width: 560px){
+  .cat-edit-fields{ flex-wrap:wrap; }
+  .cat-edit-fields input.cat-edit-label{ flex:1 1 100%; order:1; }
+  .cat-edit-fields input.cat-edit-icon{ order:2; }
+}
+
+/* ---------------- Modal ---------------- */
+.modal-overlay{
+  position:fixed; inset:0; background: rgba(20,28,20,0.55); z-index:200;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay[hidden]{ display:none; }
+.modal-card{
+  background:#fff; border-radius: var(--radius-lg); padding: 28px 26px;
+  width:100%; max-width:420px; box-shadow: var(--shadow-lg);
+  max-height:90vh; overflow-y:auto;
+}
+.modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.modal-head h2{ font-size:19px; font-weight:600; }
+.modal-close-btn{
+  background:none; border:none; padding:6px; cursor:pointer; color: var(--moss);
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+}
+.modal-close-btn:hover{ background: var(--mist); color: var(--pine); }
+.modal-close-btn svg{ width:19px; height:19px; }
 label{ display:block; font-size:13px; font-weight:700; color: var(--pine); margin-bottom:7px; }
 .label-optional{ font-weight:500; color: var(--ink-3); }
 
