@@ -414,7 +414,15 @@
         </div>
       </div>
 
-      <div class="panel panel--form">
+      <div class="panel">
+        <div class="panel-head panel-head--row">
+          <div>
+            <h2>Daftar Kategori</h2>
+            <p class="panel-sub" id="cat-list-sub">Kategori Pemasukan</p>
+          </div>
+          <button class="btn btn--primary btn--sm" id="cat-add-open-btn" type="button">+ Tambah Kategori</button>
+        </div>
+
         <div class="type-switch" role="tablist" aria-label="Jenis kategori yang dikelola">
           <button class="type-btn is-active" data-cattype="income" role="tab" aria-selected="true" type="button">
             <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -426,28 +434,6 @@
           </button>
         </div>
 
-        <form id="category-form" novalidate>
-          <div class="field-row field-row--cat">
-            <div class="field field--icon">
-              <label for="cat-icon">Emoji</label>
-              <input type="text" id="cat-icon" maxlength="4" placeholder="🏷️" autocomplete="off" />
-            </div>
-            <div class="field field--grow">
-              <label for="cat-label">Nama Kategori</label>
-              <input type="text" id="cat-label" placeholder="Contoh: Hobi" autocomplete="off" required />
-            </div>
-          </div>
-          <button type="submit" class="btn btn--primary btn--block" id="cat-submit">
-            <span id="cat-submit-label">+ Tambah Kategori</span>
-          </button>
-        </form>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <h2>Daftar Kategori</h2>
-          <p class="panel-sub" id="cat-list-sub">Kategori Pemasukan</p>
-        </div>
         <ul class="cat-manage-list" id="cat-manage-list"></ul>
         <p class="empty-hint" id="cat-manage-empty" hidden>Belum ada kategori.</p>
       </div>
@@ -457,6 +443,32 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal-overlay" id="category-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Tambah Kategori</h2>
+      <button type="button" class="modal-close-btn" id="category-modal-close" aria-label="Tutup">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <form id="category-form" novalidate>
+      <div class="field-row field-row--cat">
+        <div class="field field--icon">
+          <label for="cat-icon">Emoji</label>
+          <input type="text" id="cat-icon" maxlength="4" placeholder="🏷️" autocomplete="off" />
+        </div>
+        <div class="field field--grow">
+          <label for="cat-label">Nama Kategori</label>
+          <input type="text" id="cat-label" placeholder="Contoh: Hobi" autocomplete="off" required />
+        </div>
+      </div>
+      <button type="submit" class="btn btn--primary btn--block" id="cat-submit">
+        <span id="cat-submit-label">+ Tambah Kategori</span>
+      </button>
+    </form>
+  </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
