@@ -849,6 +849,9 @@
   const catManageList = document.getElementById("cat-manage-list");
   const catManageEmpty = document.getElementById("cat-manage-empty");
   const catListSub = document.getElementById("cat-list-sub");
+  const categoryModal = document.getElementById("category-modal");
+  const catAddOpenBtn = document.getElementById("cat-add-open-btn");
+  const categoryModalClose = document.getElementById("category-modal-close");
 
   catTypeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -862,69 +865,20 @@
     });
   });
 
-  function renderCategoryManageList() {
-    const list = CATEGORIES[categoryManageType] || [];
-    catListSub.textContent = categoryManageType === "income" ? "Kategori Pemasukan" : "Kategori Pengeluaran";
-    catManageList.innerHTML = "";
-    if (list.length === 0) {
-      catManageEmpty.hidden = false;
-      return;
-    }
-    catManageEmpty.hidden = true;
-    list.forEach((cat) => {
-      const li = document.createElement("li");
-      li.className = "cat-manage-item";
-      li.innerHTML = `
-        <input type="text" class="cat-manage-input cat-edit-icon" value="${escapeHtml(cat.icon)}" maxlength="4" />
-        <input type="text" class="cat-manage-input cat-edit-label" value="${escapeHtml(cat.label)}" />
-        <button type="button" class="btn btn--ghost btn--sm cat-save-btn">Simpan</button>
-        <button type="button" class="row-delete cat-delete-btn" title="Hapus kategori">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      `;
-      const iconInput = li.querySelector(".cat-edit-icon");
-      const labelInput = li.querySelector(".cat-edit-label");
-      const type = categoryManageType;
-
-      li.querySelector(".cat-save-btn").addEventListener("click", async () => {
-        const newLabel = labelInput.value.trim();
-        const newIcon = iconInput.value.trim() || "🏷";
-        if (!newLabel) { showToast("Nama kategori tidak boleh kosong."); return; }
-        try {
-          await updateCategoryRemote(type, cat.id, newLabel, newIcon);
-          cat.label = newLabel;
-          cat.icon = newIcon;
-          rebuildCategoryLookup();
-          populateCategories(currentType);
-          renderHistory();
-          renderDashboard();
-          showToast("Kategori diperbarui ✓");
-        } catch (err) {
-          console.error(err);
-          showToast("Gagal memperbarui kategori.");
-        }
-      });
-
-      li.querySelector(".cat-delete-btn").addEventListener("click", async () => {
-        if (!confirm(`Hapus kategori "${cat.label}"? Transaksi lama yang memakai kategori ini tetap tersimpan.`)) return;
-        try {
-          await deleteCategoryRemote(type, cat.id);
-          CATEGORIES[type] = CATEGORIES[type].filter((c) => c.id !== cat.id);
-          rebuildCategoryLookup();
-          renderCategoryManageList();
-          populateCategories(currentType);
-          renderHistory();
-          renderDashboard();
-          showToast("Kategori dihapus");
-        } catch (err) {
-          console.error(err);
-          showToast("Gagal menghapus kategori.");
-        }
-      });
-
-      catManageList.appendChild(li);
-    });
+  /* ---- Modal Tambah Kategori ---- */
+  function openCategoryModal() {
+    categoryForm.reset();
+    categoryModal.hidden = false;
+    catLabelInput.focus();
   }
+  function closeCategoryModal() {
+    categoryModal.hidden = true;
+  }
+  catAddOpenBtn.addEventListener("click", openCategoryModal);
+  categoryModalClose.addEventListener("click", closeCategoryModal);
+  categoryModal.addEventListener("click", (e) => {
+    if (e.target === categoryModal) closeCategoryModal();
+  });
 
   categoryForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -939,9 +893,9 @@
       const newCat = await addCategoryRemote(categoryManageType, label, icon);
       CATEGORIES[categoryManageType].push(newCat);
       rebuildCategoryLookup();
-      categoryForm.reset();
       renderCategoryManageList();
       populateCategories(currentType);
+      closeCategoryModal();
       showToast("Kategori ditambahkan ✓");
     } catch (err) {
       console.error(err);
@@ -951,6 +905,121 @@
       catSubmitLabel.textContent = original;
     }
   });
+
+  /* ---- Daftar kategori: mode lihat & mode edit per baris ---- */
+  function renderCategoryManageList() {
+    const list = CATEGORIES[categoryManageType] || [];
+    catListSub.textContent = categoryManageType === "income" ? "Kategori Pemasukan" : "Kategori Pengeluaran";
+    catManageList.innerHTML = "";
+    if (list.length === 0) {
+      catManageEmpty.hidden = false;
+      return;
+    }
+    catManageEmpty.hidden = true;
+    list.forEach((cat) => catManageList.appendChild(buildCategoryRow(cat)));
+  }
+
+  function buildCategoryRow(cat) {
+    const type = categoryManageType;
+    const li = document.createElement("li");
+    li.className = "cat-manage-item";
+    li.innerHTML = `
+      <span class="cat-view-icon">${escapeHtml(cat.icon)}</span>
+      <span class="cat-view-label">${escapeHtml(cat.label)}</span>
+      <div class="cat-edit-fields" hidden>
+        <input type="text" class="cat-manage-input cat-edit-icon" maxlength="4" />
+        <input type="text" class="cat-manage-input cat-edit-label" />
+      </div>
+      <div class="cat-actions" data-mode="view">
+        <button type="button" class="icon-btn-sm cat-edit-btn" title="Edit kategori">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="icon-btn-sm cat-delete-btn" title="Hapus kategori">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="cat-actions" data-mode="edit" hidden>
+        <button type="button" class="icon-btn-sm cat-save-btn" title="Simpan">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="icon-btn-sm cat-cancel-btn" title="Batal">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    `;
+
+    const viewIcon = li.querySelector(".cat-view-icon");
+    const viewLabel = li.querySelector(".cat-view-label");
+    const editFields = li.querySelector(".cat-edit-fields");
+    const editIconInput = li.querySelector(".cat-edit-icon");
+    const editLabelInput = li.querySelector(".cat-edit-label");
+    const viewActions = li.querySelector('.cat-actions[data-mode="view"]');
+    const editActions = li.querySelector('.cat-actions[data-mode="edit"]');
+
+    function enterEditMode() {
+      editIconInput.value = cat.icon;
+      editLabelInput.value = cat.label;
+      viewIcon.hidden = true;
+      viewLabel.hidden = true;
+      editFields.hidden = false;
+      viewActions.hidden = true;
+      editActions.hidden = false;
+      editLabelInput.focus();
+    }
+
+    function exitEditMode() {
+      viewIcon.hidden = false;
+      viewLabel.hidden = false;
+      editFields.hidden = true;
+      viewActions.hidden = false;
+      editActions.hidden = true;
+    }
+
+    li.querySelector(".cat-edit-btn").addEventListener("click", enterEditMode);
+    li.querySelector(".cat-cancel-btn").addEventListener("click", exitEditMode);
+
+    li.querySelector(".cat-save-btn").addEventListener("click", async () => {
+      const newLabel = editLabelInput.value.trim();
+      const newIcon = editIconInput.value.trim() || "🏷";
+      if (!newLabel) { showToast("Nama kategori tidak boleh kosong."); return; }
+      try {
+        await updateCategoryRemote(type, cat.id, newLabel, newIcon);
+        cat.label = newLabel;
+        cat.icon = newIcon;
+        rebuildCategoryLookup();
+        viewIcon.textContent = newIcon;
+        viewLabel.textContent = newLabel;
+        exitEditMode();
+        populateCategories(currentType);
+        renderHistory();
+        renderDashboard();
+        showToast("Kategori diperbarui ✓");
+      } catch (err) {
+        console.error(err);
+        showToast("Gagal memperbarui kategori.");
+      }
+    });
+
+    li.querySelector(".cat-delete-btn").addEventListener("click", async () => {
+      if (!confirm(`Hapus kategori "${cat.label}"? Transaksi lama yang memakai kategori ini tetap tersimpan.`)) return;
+      try {
+        await deleteCategoryRemote(type, cat.id);
+        CATEGORIES[type] = CATEGORIES[type].filter((c) => c.id !== cat.id);
+        rebuildCategoryLookup();
+        li.remove();
+        if (CATEGORIES[type].length === 0) catManageEmpty.hidden = false;
+        populateCategories(currentType);
+        renderHistory();
+        renderDashboard();
+        showToast("Kategori dihapus");
+      } catch (err) {
+        console.error(err);
+        showToast("Gagal menghapus kategori.");
+      }
+    });
+
+    return li;
+  }
 
   /* ---------------- Riwayat ---------------- */
   const searchInput = document.getElementById("search-tx");
