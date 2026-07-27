@@ -844,6 +844,12 @@
 
   /* ---------------- Kelola Kategori ---------------- */
   let categoryManageType = "income";
+  let catSearchTerm = "";
+  const catSearchInput = document.getElementById("search-cat");
+  catSearchInput.addEventListener("input", () => {
+    catSearchTerm = catSearchInput.value.trim().toLowerCase();
+    renderCategoryManageList();
+  });
   const catTypeButtons = document.querySelectorAll("[data-cattype]");
   const categoryForm = document.getElementById("category-form");
   const catIconInput = document.getElementById("cat-icon");
@@ -912,13 +918,17 @@
 
   /* ---- Daftar kategori: mode lihat & mode edit per baris ---- */
   function renderCategoryManageList() {
-    const list = CATEGORIES[categoryManageType] || [];
+    let list = CATEGORIES[categoryManageType] || [];
+    if (catSearchTerm) {
+      list = list.filter((cat) => cat.label.toLowerCase().includes(catSearchTerm));
+    }
     catListSub.textContent = categoryManageType === "income" ? "Kategori Pemasukan" : "Kategori Pengeluaran";
     const tableWrap = document.querySelector("#page-kategori .table-wrap");
     catManageList.innerHTML = "";
     if (list.length === 0) {
       tableWrap.style.display = "none";
       catManageEmpty.hidden = false;
+      catManageEmpty.textContent = catSearchTerm ? "Tidak ada kategori yang cocok dengan pencarianmu." : "Belum ada kategori.";
       return;
     }
     tableWrap.style.display = "";
