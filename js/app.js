@@ -636,7 +636,7 @@
     document.getElementById("period-label-tx").textContent = `Transaksi — ${label}`;
     document.getElementById("recent-empty-text").textContent = `Belum ada transaksi pada ${label}.`;
 
-    const periodIncome = periodTx.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+    const totalIncomeAllTime = transactions.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
     const periodExpense = periodTx.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
 
     const ringEl = document.getElementById("ring-progress");
@@ -645,8 +645,12 @@
     let pct = 0;
     let caption = "Terpakai";
 
-    if (periodIncome > 0) {
-      pct = Math.min(periodExpense / periodIncome, 1);
+    // Sengaja pakai TOTAL pemasukan keseluruhan (all-time) sebagai pembanding,
+    // bukan cuma pemasukan yang tercatat di periode yang sedang dilihat —
+    // supaya ring tetap bermakna walau periode tersebut tidak ada transaksi
+    // pemasukan baru (misal minggu ini cuma ada pengeluaran).
+    if (totalIncomeAllTime > 0) {
+      pct = Math.min(periodExpense / totalIncomeAllTime, 1);
     } else if (periodExpense > 0) {
       pct = 1;
       caption = "Tanpa pemasukan";
