@@ -37,7 +37,7 @@
   let currentType = "income"; // untuk form Tambah
   let currentFilter = "all"; // untuk Riwayat
   let searchTerm = "";
-  let periodType = "weekly"; // daily | weekly | monthly | yearly
+  let periodType = "monthly"; // daily | weekly | monthly | yearly
   let currentUser = null; // { username, displayName }
   let isConfigured = CONFIG.API_URL && CONFIG.API_URL.startsWith("http");
 
@@ -416,9 +416,9 @@
     renderMonthGrid();
     updateMonthTriggerLabel();
 
-    periodType = "weekly";
-    periodTypeSelect.value = "weekly";
-    showPeriodField("weekly");
+    periodType = "monthly";
+    periodTypeSelect.value = "monthly";
+    showPeriodField("monthly");
   }
 
   function populateYearSelect() {
