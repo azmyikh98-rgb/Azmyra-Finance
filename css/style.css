@@ -371,6 +371,20 @@ img, svg{ display: block; }
 }
 .modal-close-btn:hover{ background: var(--mist); color: var(--pine); }
 .modal-close-btn svg{ width:19px; height:19px; }
+
+.modal-card--sm{ max-width:360px; }
+.confirm-modal-message{ font-size:14.5px; color: var(--pine); line-height:1.55; margin:0 0 22px; }
+.confirm-modal-actions{ display:flex; gap:10px; justify-content:flex-end; }
+.confirm-modal-actions .btn{ flex:1; }
+.btn--danger{ background: var(--brick); color:#fff; box-shadow: 0 6px 16px -4px rgba(180,83,74,0.45); }
+.btn--danger:hover{ background:#9A4640; }
+
+.row-edit{
+  background:none; border:none; cursor:pointer; color: var(--ink-3); padding:6px; border-radius:8px;
+  transition: color .15s ease, background .15s ease; margin-right:2px;
+}
+.row-edit:hover{ color: var(--fern-dk); background: var(--fern-light); }
+.row-edit svg{ width:16px; height:16px; }
 label{ display:block; font-size:13px; font-weight:700; color: var(--pine); margin-bottom:7px; }
 .label-optional{ font-weight:500; color: var(--ink-3); }
 
