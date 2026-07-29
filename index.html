@@ -99,6 +99,10 @@
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M20.6 12.4 12.4 20.6a2 2 0 0 1-2.8 0l-6.2-6.2a2 2 0 0 1 0-2.8L11.6 3.4A2 2 0 0 1 13 2.8H19a2 2 0 0 1 2 2v6a2 2 0 0 1-.6 1.4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="15.5" cy="8.5" r="1.3" fill="currentColor"/></svg>
         <span>Kelola Kategori</span>
       </button>
+      <button class="nav-item" data-route="laporan" type="button">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M4 20V10M11 20V4M18 20v-7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Laporan</span>
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -453,6 +457,70 @@
           </table>
         </div>
         <p class="empty-hint" id="cat-manage-empty" hidden>Belum ada kategori.</p>
+      </div>
+    </section>
+
+    <!-- ---------- LAPORAN ---------- -->
+    <section class="page" id="page-laporan" aria-labelledby="laporan-title">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Analisis keuangan</p>
+          <h1 id="laporan-title">Laporan</h1>
+        </div>
+      </div>
+
+      <div class="period-note">
+        <span id="rep-period-label">Memuat periode…</span>
+        <button class="btn btn--ghost btn--sm" data-route="dashboard" type="button">Ubah periode di Dashboard</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="panel stat-card">
+          <span class="stat-card-label">Pemasukan</span>
+          <span class="stat-card-value" id="rep-income">Rp 0</span>
+        </div>
+        <div class="panel stat-card">
+          <span class="stat-card-label">Pengeluaran</span>
+          <span class="stat-card-value" id="rep-expense">Rp 0</span>
+        </div>
+        <div class="panel stat-card" id="rep-net-card">
+          <span class="stat-card-label" id="rep-net-label">Selisih</span>
+          <span class="stat-card-value" id="rep-net">Rp 0</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Kesehatan Keuangan</h2>
+            <p class="panel-sub">Perkiraan sederhana dari rasio pemasukan-pengeluaran</p>
+          </div>
+          <span class="health-badge" id="health-badge">—</span>
+          <p class="health-desc" id="health-desc">Belum ada data untuk periode ini.</p>
+          <p class="health-disclaimer">Ini bukan nasihat keuangan profesional — sekadar indikator kasar untuk bantu kamu memantau kebiasaan keuangan sendiri.</p>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Kategori Paling Boros</h2>
+            <p class="panel-sub">Semua kategori pengeluaran periode ini, diurutkan</p>
+          </div>
+          <p class="report-callout" id="report-cat-callout" hidden></p>
+          <div class="bar-list" id="report-cat-bars"></div>
+          <p class="empty-hint" id="report-cat-empty" hidden>Belum ada pengeluaran pada periode ini.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Perkembangan Tabungan</h2>
+          <p class="panel-sub" id="trend-sub">Surplus/defisit beberapa periode terakhir</p>
+        </div>
+        <div class="trend-chart" id="trend-chart"></div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--fern)"></i>Surplus</span>
+          <span><i class="dot" style="background:var(--brick)"></i>Defisit</span>
+        </div>
       </div>
     </section>
 
