@@ -728,6 +728,190 @@
     equalizeGridCards._t = setTimeout(equalizeGridCards, 150);
   });
 
+  /* ---------------- Laporan ---------------- */
+  function renderLaporan() {
+    const range = getPeriodRange();
+    const label = formatPeriodLabel(range);
+    const periodTx = filterByPeriod(transactions, range);
+
+    document.getElementById("rep-period-label").textContent = `Menampilkan periode: ${label}`;
+
+    const periodIncome = periodTx.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+    const periodExpense = periodTx.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+    const net = periodIncome - periodExpense;
+
+    document.getElementById("rep-income").textContent = formatRupiah(periodIncome);
+    document.getElementById("rep-expense").textContent = formatRupiah(periodExpense);
+    const netEl = document.getElementById("rep-net");
+    const netLabelEl = document.getElementById("rep-net-label");
+    const netCard = document.getElementById("rep-net-card");
+    netEl.textContent = formatRupiah(Math.abs(net));
+    netLabelEl.textContent = net >= 0 ? "Surplus" : "Defisit";
+    netCard.classList.toggle("is-surplus", net >= 0);
+    netCard.classList.toggle("is-defisit", net < 0);
+
+    renderHealthCard(periodIncome, periodExpense);
+    renderReportCategories(periodTx);
+    renderTrendChart();
+  }
+
+  function renderHealthCard(periodIncome, periodExpense) {
+    const badge = document.getElementById("health-badge");
+    const desc = document.getElementById("health-desc");
+    badge.className = "health-badge";
+
+    if (periodIncome <= 0) {
+      badge.textContent = periodExpense > 0 ? "Belum Ada Pemasukan" : "Belum Ada Data";
+      badge.classList.add("health-neutral");
+      desc.textContent = periodExpense > 0
+        ? "Belum ada pemasukan tercatat pada periode ini, jadi rasio kesehatan belum bisa dihitung."
+        : "Belum ada transaksi pada periode ini.";
+      return;
+    }
+
+    const savingsRate = (periodIncome - periodExpense) / periodIncome;
+    let status, cls, text;
+    if (savingsRate >= 0.2) {
+      status = "Sehat";
+      cls = "health-good";
+      text = `Kamu menyisihkan sekitar ${Math.round(savingsRate * 100)}% dari pemasukan pada periode ini.`;
+    } else if (savingsRate >= 0) {
+      status = "Cukup Sehat";
+      cls = "health-warn";
+      text = `Kamu menyisihkan sekitar ${Math.round(savingsRate * 100)}% dari pemasukan — masih aman, tapi ruang tabungannya tipis.`;
+    } else {
+      status = "Perlu Perhatian";
+      cls = "health-bad";
+      text = `Pengeluaran melebihi pemasukan sekitar ${Math.round(Math.abs(savingsRate) * 100)}% pada periode ini.`;
+    }
+    badge.textContent = status;
+    badge.classList.add(cls);
+    desc.textContent = text;
+  }
+
+  function renderReportCategories(periodTx) {
+    const catTotals = {};
+    let totalExpense = 0;
+    periodTx
+      .filter((t) => t.type === "expense")
+      .forEach((t) => {
+        catTotals[t.category] = (catTotals[t.category] || 0) + Number(t.amount);
+        totalExpense += Number(t.amount);
+      });
+    const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+    const container = document.getElementById("report-cat-bars");
+    const emptyEl = document.getElementById("report-cat-empty");
+    const calloutEl = document.getElementById("report-cat-callout");
+    container.innerHTML = "";
+
+    if (sorted.length === 0) {
+      emptyEl.hidden = false;
+      calloutEl.hidden = true;
+      return;
+    }
+    emptyEl.hidden = true;
+
+    const [topId, topVal] = sorted[0];
+    const topCat = CATEGORY_LOOKUP[topId] || { label: topId, icon: "•" };
+    const topPct = totalExpense ? Math.round((topVal / totalExpense) * 100) : 0;
+    calloutEl.hidden = false;
+    calloutEl.textContent = `${topCat.icon} ${topCat.label} adalah kategori terbesar, menyumbang ${topPct}% dari total pengeluaran periode ini.`;
+
+    const maxVal = sorted[0][1];
+    sorted.forEach(([catId, val]) => {
+      const cat = CATEGORY_LOOKUP[catId] || { label: catId, icon: "•" };
+      const pct = totalExpense ? Math.round((val / totalExpense) * 100) : 0;
+      const row = document.createElement("div");
+      row.className = "bar-row";
+      row.innerHTML = `
+        <div class="bar-row-top"><span>${cat.icon} ${escapeHtml(cat.label)}</span><span>${formatRupiah(val)} · ${pct}%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${maxVal ? (val / maxVal) * 100 : 0}%"></div></div>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  // Tren beberapa sub-periode terakhir (mengakhiri di periode yang sedang
+  // dipilih), granularitasnya menyesuaikan jenis periode aktif — supaya
+  // "perkembangan tabungan" selalu relevan dengan konteks yang sedang dilihat.
+  function getTrendIntervals() {
+    const intervals = [];
+    if (periodType === "daily") {
+      const endDate = parseISODate(selectedDailyDate);
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - i);
+        const iso = toISODate(d);
+        intervals.push({ label: String(d.getDate()), start: iso, end: iso });
+      }
+    } else if (periodType === "weekly") {
+      const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
+      const current = weeks.find((w) => w.index === selectedWeekIndex) || weeks[0];
+      const curStart = parseISODate(current.start);
+      for (let i = 5; i >= 0; i--) {
+        const s = new Date(curStart);
+        s.setDate(s.getDate() - i * 7);
+        const e = new Date(s);
+        e.setDate(e.getDate() + 6);
+        intervals.push({ label: `${s.getDate()}/${s.getMonth() + 1}`, start: toISODate(s), end: toISODate(e) });
+      }
+    } else if (periodType === "monthly") {
+      for (let i = 5; i >= 0; i--) {
+        let mm = selectedMonthIndex - i;
+        let yy = selectedMonthYear;
+        while (mm < 0) { mm += 12; yy--; }
+        const lastDay = new Date(yy, mm + 1, 0).getDate();
+        intervals.push({
+          label: MONTH_NAMES_ID[mm],
+          start: `${yy}-${pad2(mm + 1)}-01`,
+          end: `${yy}-${pad2(mm + 1)}-${pad2(lastDay)}`,
+        });
+      }
+    } else {
+      const y = Number(document.getElementById("period-yearly").value) || new Date().getFullYear();
+      for (let i = 4; i >= 0; i--) {
+        const yy = y - i;
+        intervals.push({ label: String(yy), start: `${yy}-01-01`, end: `${yy}-12-31` });
+      }
+    }
+    return intervals.map((iv) => {
+      const txs = transactions.filter((t) => t.date >= iv.start && t.date <= iv.end);
+      const inc = txs.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+      const exp = txs.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+      return { ...iv, income: inc, expense: exp, net: inc - exp };
+    });
+  }
+
+  function renderTrendChart() {
+    const intervals = getTrendIntervals();
+    const subLabel = {
+      daily: "Surplus/defisit 7 hari terakhir",
+      weekly: "Surplus/defisit 6 minggu terakhir",
+      monthly: "Surplus/defisit 6 bulan terakhir",
+      yearly: "Surplus/defisit 5 tahun terakhir",
+    };
+    document.getElementById("trend-sub").textContent = subLabel[periodType] || "Surplus/defisit beberapa periode terakhir";
+
+    const maxAbs = Math.max(1, ...intervals.map((iv) => Math.abs(iv.net)));
+    const container = document.getElementById("trend-chart");
+    container.innerHTML = "";
+    intervals.forEach((iv) => {
+      const isPositive = iv.net >= 0;
+      const heightPct = Math.min(100, (Math.abs(iv.net) / maxAbs) * 100);
+      const col = document.createElement("div");
+      col.className = "trend-col";
+      col.title = `${iv.label}: ${isPositive ? "Surplus" : "Defisit"} ${formatRupiah(Math.abs(iv.net))}`;
+      col.innerHTML = `
+        <div class="trend-bar-track">
+          <div class="trend-zero-line"></div>
+          <div class="trend-bar ${isPositive ? "positive" : "negative"}" style="height:${heightPct / 2}%"></div>
+        </div>
+        <div class="trend-label">${escapeHtml(iv.label)}</div>
+      `;
+      container.appendChild(col);
+    });
+  }
+
   function renderTxListItem(t) {
     const cat = CATEGORY_LOOKUP[t.category] || { label: t.category, icon: "•" };
     const li = document.createElement("li");
@@ -750,6 +934,7 @@
   function renderDashboard() {
     renderHeroStats();
     renderPeriodPanels();
+    renderLaporan();
   }
 
   /* ---------------- Tambah Transaksi form ---------------- */
