@@ -101,6 +101,16 @@
     if (!json.success) throw new Error(json.error || "Gagal menghapus transaksi");
   }
 
+  async function updateTransactionRemote(tx) {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "updateTransaction", transaction: tx, username: currentUser ? currentUser.username : "" }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Gagal memperbarui transaksi");
+  }
+
   async function addCategoryRemote(type, label, icon) {
     const res = await fetch(CONFIG.API_URL, {
       method: "POST",
@@ -555,6 +565,35 @@
     return div.innerHTML;
   }
 
+  /* ---------------- Modal konfirmasi (dipakai bersama) ---------------- */
+  const confirmModal = document.getElementById("confirm-modal");
+  const confirmModalTitle = document.getElementById("confirm-modal-title");
+  const confirmModalMessage = document.getElementById("confirm-modal-message");
+  const confirmModalOk = document.getElementById("confirm-modal-ok");
+  const confirmModalCancel = document.getElementById("confirm-modal-cancel");
+  let confirmResolver = null;
+
+  function askConfirm(title, message, okLabel, danger) {
+    confirmModalTitle.textContent = title;
+    confirmModalMessage.textContent = message;
+    confirmModalOk.textContent = okLabel || "Ya, Lanjutkan";
+    confirmModalOk.classList.toggle("btn--danger", !!danger);
+    confirmModalOk.classList.toggle("btn--primary", !danger);
+    confirmModal.hidden = false;
+    return new Promise((resolve) => { confirmResolver = resolve; });
+  }
+  function closeConfirmModal(result) {
+    confirmModal.hidden = true;
+    if (confirmResolver) {
+      const r = confirmResolver;
+      confirmResolver = null;
+      r(result);
+    }
+  }
+  confirmModalOk.addEventListener("click", () => closeConfirmModal(true));
+  confirmModalCancel.addEventListener("click", () => closeConfirmModal(false));
+  confirmModal.addEventListener("click", (e) => { if (e.target === confirmModal) closeConfirmModal(false); });
+
   /* ---------------- Routing (sidebar tabs) ---------------- */
   function goToRoute(route) {
     document.querySelectorAll(".page").forEach((p) => p.classList.remove("is-active"));
@@ -989,6 +1028,15 @@
     }
     errAmount.hidden = true;
 
+    const catObj = CATEGORY_LOOKUP[categorySelect.value] || { label: categorySelect.value, icon: "" };
+    const jenisLabel = currentType === "income" ? "pemasukan" : "pengeluaran";
+    const ok = await askConfirm(
+      "Simpan Transaksi",
+      `Simpan ${jenisLabel} ${catObj.icon} ${catObj.label} sebesar ${formatRupiah(rawAmount)}?`,
+      "Ya, Simpan"
+    );
+    if (!ok) return;
+
     const newTx = {
       id: uid(),
       type: currentType,
@@ -1080,6 +1128,9 @@
     const label = catLabelInput.value.trim();
     const icon = catIconInput.value.trim() || "🏷️";
     if (!label) { showToast("Nama kategori wajib diisi."); return; }
+
+    const ok = await askConfirm("Tambah Kategori", `Tambahkan kategori "${icon} ${label}"?`, "Ya, Tambah");
+    if (!ok) return;
 
     catSubmitBtn.disabled = true;
     const original = catSubmitLabel.textContent;
@@ -1187,6 +1238,8 @@
       const newLabel = editLabelInput.value.trim();
       const newIcon = editIconInput.value.trim() || "🏷";
       if (!newLabel) { showToast("Nama kategori tidak boleh kosong."); return; }
+      const ok = await askConfirm("Simpan Perubahan", `Simpan perubahan kategori jadi "${newIcon} ${newLabel}"?`, "Ya, Simpan");
+      if (!ok) return;
       try {
         await updateCategoryRemote(type, cat.id, newLabel, newIcon);
         cat.label = newLabel;
@@ -1206,7 +1259,13 @@
     });
 
     tr.querySelector(".cat-delete-btn").addEventListener("click", async () => {
-      if (!confirm(`Hapus kategori "${cat.label}"? Transaksi lama yang memakai kategori ini tetap tersimpan.`)) return;
+      const ok = await askConfirm(
+        "Hapus Kategori",
+        `Yakin ingin menghapus kategori "${cat.icon} ${cat.label}"? Transaksi lama yang memakai kategori ini tetap tersimpan.`,
+        "Ya, Hapus",
+        true
+      );
+      if (!ok) return;
       try {
         await deleteCategoryRemote(type, cat.id);
         CATEGORIES[type] = CATEGORIES[type].filter((c) => c.id !== cat.id);
@@ -1276,6 +1335,9 @@
         <td class="note-cell">${escapeHtml(t.note || "—")}</td>
         <td class="align-right amount-cell ${t.type}">${t.type === "income" ? "+" : "−"} ${formatRupiah(t.amount)}</td>
         <td class="align-right">
+          <button class="row-edit" title="Edit transaksi" data-id="${t.id}" data-type="${t.type}">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
           <button class="row-delete" title="Hapus transaksi" data-id="${t.id}" data-type="${t.type}">
             <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -1284,10 +1346,27 @@
       tbody.appendChild(tr);
     });
 
+    tbody.querySelectorAll(".row-edit").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        const tx = transactions.find((t) => t.id === id);
+        if (tx) openEditTxModal(tx);
+      });
+    });
+
     tbody.querySelectorAll(".row-delete").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
         const type = btn.dataset.type;
+        const tx = transactions.find((t) => t.id === id);
+        const cat = tx ? (CATEGORY_LOOKUP[tx.category] || { label: tx.category }) : { label: "" };
+        const ok = await askConfirm(
+          "Hapus Transaksi",
+          `Yakin ingin menghapus transaksi ${cat.label}${tx ? " sebesar " + formatRupiah(tx.amount) : ""}? Tindakan ini tidak bisa dibatalkan.`,
+          "Ya, Hapus",
+          true
+        );
+        if (!ok) return;
         btn.disabled = true;
         try {
           await deleteTransactionRemote(id, type);
@@ -1303,6 +1382,98 @@
       });
     });
   }
+
+  /* ---------------- Modal Edit Transaksi ---------------- */
+  const editTxModal = document.getElementById("edit-tx-modal");
+  const editTxModalClose = document.getElementById("edit-tx-modal-close");
+  const editTxForm = document.getElementById("edit-tx-form");
+  const editTxAmountInput = document.getElementById("edit-tx-amount");
+  const editTxCategorySelect = document.getElementById("edit-tx-category");
+  const editTxDateInput = document.getElementById("edit-tx-date");
+  const editTxNoteInput = document.getElementById("edit-tx-note");
+  const editTxSubmitBtn = document.getElementById("edit-tx-submit");
+  const editTxSubmitLabel = document.getElementById("edit-tx-submit-label");
+  let editingTxId = null;
+  let editingTxType = null;
+
+  function openEditTxModal(tx) {
+    editingTxId = tx.id;
+    editingTxType = tx.type;
+    editTxAmountInput.value = Number(tx.amount).toLocaleString("id-ID");
+    editTxCategorySelect.innerHTML = "";
+    (CATEGORIES[tx.type] || []).forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = `${c.icon}  ${c.label}`;
+      editTxCategorySelect.appendChild(opt);
+    });
+    editTxCategorySelect.value = tx.category;
+    editTxDateInput.value = tx.date;
+    editTxNoteInput.value = tx.note || "";
+    document.getElementById("edit-tx-err-amount").hidden = true;
+    editTxModal.hidden = false;
+  }
+  function closeEditTxModal() {
+    editTxModal.hidden = true;
+    editingTxId = null;
+    editingTxType = null;
+  }
+  editTxModalClose.addEventListener("click", closeEditTxModal);
+  editTxModal.addEventListener("click", (e) => { if (e.target === editTxModal) closeEditTxModal(); });
+
+  editTxAmountInput.addEventListener("input", () => {
+    const digits = editTxAmountInput.value.replace(/\D/g, "");
+    editTxAmountInput.value = digits ? Number(digits).toLocaleString("id-ID") : "";
+    document.getElementById("edit-tx-err-amount").hidden = true;
+  });
+
+  editTxForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!editingTxId) return;
+    const rawAmount = Number(editTxAmountInput.value.replace(/\D/g, ""));
+    const errAmount = document.getElementById("edit-tx-err-amount");
+    if (!rawAmount || rawAmount <= 0) {
+      errAmount.hidden = false;
+      editTxAmountInput.focus();
+      return;
+    }
+    errAmount.hidden = true;
+
+    const updatedTx = {
+      id: editingTxId,
+      type: editingTxType,
+      category: editTxCategorySelect.value,
+      amount: rawAmount,
+      note: editTxNoteInput.value.trim(),
+      date: editTxDateInput.value || todayISO(),
+    };
+    const catObj = CATEGORY_LOOKUP[updatedTx.category] || { label: updatedTx.category, icon: "" };
+    const ok = await askConfirm(
+      "Simpan Perubahan",
+      `Simpan perubahan transaksi ${catObj.icon} ${catObj.label} sebesar ${formatRupiah(rawAmount)}?`,
+      "Ya, Simpan"
+    );
+    if (!ok) return;
+
+    editTxSubmitBtn.disabled = true;
+    const original = editTxSubmitLabel.textContent;
+    editTxSubmitLabel.textContent = "Menyimpan…";
+    try {
+      await updateTransactionRemote(updatedTx);
+      const idx = transactions.findIndex((t) => t.id === editingTxId);
+      if (idx !== -1) transactions[idx] = { ...transactions[idx], ...updatedTx };
+      closeEditTxModal();
+      renderHistory();
+      renderDashboard();
+      showToast("Perubahan tersimpan ✓");
+    } catch (err) {
+      console.error(err);
+      showToast("Gagal menyimpan perubahan. Coba lagi.");
+    } finally {
+      editTxSubmitBtn.disabled = false;
+      editTxSubmitLabel.textContent = original;
+    }
+  });
 
   /* ---------------- Muat ulang data ---------------- */
   document.getElementById("reset-data").addEventListener("click", async () => {
