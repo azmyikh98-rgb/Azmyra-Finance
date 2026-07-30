@@ -1480,8 +1480,28 @@
     await loadAllData(true);
   });
 
+  /* ---------------- Dropdown profil (Notifikasi & Keluar) ---------------- */
+  const userBadgeBtn = document.getElementById("user-badge");
+  const userDropdown = document.getElementById("user-dropdown");
+
+  function openUserDropdown() {
+    userDropdown.hidden = false;
+    userBadgeBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeUserDropdown() {
+    userDropdown.hidden = true;
+    userBadgeBtn.setAttribute("aria-expanded", "false");
+  }
+  userBadgeBtn.addEventListener("click", () => {
+    userDropdown.hidden ? openUserDropdown() : closeUserDropdown();
+  });
+  document.addEventListener("click", (e) => {
+    if (!userDropdown.hidden && !e.target.closest(".user-menu-wrap")) closeUserDropdown();
+  });
+
   /* ---------------- Logout ---------------- */
   document.getElementById("logout-btn").addEventListener("click", () => {
+    closeUserDropdown();
     clearStoredUser();
     currentUser = null;
     transactions = [];
@@ -1615,6 +1635,7 @@
   }
 
   notifBtn.addEventListener("click", async () => {
+    closeUserDropdown();
     if (!isFirebaseConfigured) {
       showToast("Firebase belum disetel. Lihat README bagian Notifikasi Push.");
       return;
