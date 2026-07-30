@@ -100,7 +100,6 @@ img, svg{ display: block; }
 .sidebar-footer{ margin-top:auto; padding-top:20px; border-top:1px solid rgba(255,255,255,0.08); }
 .nav-item--ghost{ color:#B7C4B3; font-weight:500; }
 .nav-item--ghost:hover{ color:#fff; background: rgba(255,255,255,0.06); }
-.sidebar-note{ font-size:11.5px; color:#7E8F7A; margin: 10px 6px 0; line-height:1.5; }
 
 /* ---------------- Topbar (mobile) ---------------- */
 .topbar{
@@ -433,14 +432,38 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .login-sub{ font-size:13.5px; color: var(--ink-3); margin:0 0 24px; }
 .login-screen[hidden]{ display:none; }
 
-/* ---------------- User badge (sidebar) ---------------- */
-.user-badge{ display:flex; align-items:center; gap:10px; padding: 6px 8px 16px; }
+/* ---------------- User badge & dropdown (sidebar) ---------------- */
+.user-menu-wrap{ position:relative; }
+.user-badge{
+  width:100%; display:flex; align-items:center; gap:10px; padding: 10px 8px;
+  background:none; border:none; cursor:pointer; border-radius:12px; text-align:left;
+  transition: background .15s ease;
+}
+.user-badge:hover{ background: rgba(255,255,255,0.06); }
 .user-avatar{
   width:34px; height:34px; border-radius:50%; background: var(--honey); color: var(--pine);
   display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;
   text-transform:uppercase;
 }
-.user-name{ font-size:13.5px; font-weight:700; color:#EAF0E7; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.user-name{ font-size:13.5px; font-weight:700; color:#EAF0E7; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+.user-badge-chevron{ width:14px; height:14px; color:#8AA394; flex-shrink:0; transition: transform .15s ease; }
+.user-badge[aria-expanded="true"] .user-badge-chevron{ transform: rotate(180deg); }
+
+.user-dropdown{
+  position:absolute; bottom: calc(100% + 8px); left:0; right:0; z-index:40;
+  background:#fff; border-radius:12px; box-shadow: var(--shadow-lg); overflow:hidden; padding:6px;
+}
+.user-dropdown-item{
+  width:100%; display:flex; align-items:center; gap:10px; padding:10px 12px;
+  background:none; border:none; cursor:pointer; border-radius:9px;
+  font-size:13.5px; font-weight:600; color: var(--pine); text-align:left;
+  transition: background .15s ease;
+}
+.user-dropdown-item:hover{ background: var(--mist); }
+.user-dropdown-item svg{ width:17px; height:17px; flex-shrink:0; color: var(--moss); }
+.user-dropdown-item--danger{ color: var(--brick); }
+.user-dropdown-item--danger svg{ color: var(--brick); }
+.user-dropdown-item--danger:hover{ background: var(--brick-light); }
 
 /* ---------------- Period filter (dashboard) ---------------- */
 .period-panel{ padding-bottom: 24px; }
