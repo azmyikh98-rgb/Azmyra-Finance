@@ -432,21 +432,14 @@
           <button class="btn btn--primary btn--sm" id="cat-add-open-btn" type="button">+ Tambah Kategori</button>
         </div>
 
-        <div class="type-switch" role="tablist" aria-label="Jenis kategori yang dikelola">
-          <button class="type-btn is-active" data-cattype="income" role="tab" aria-selected="true" type="button">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Pemasukan
-          </button>
-          <button class="type-btn" data-cattype="expense" role="tab" aria-selected="false" type="button">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Pengeluaran
-          </button>
-        </div>
-
         <div class="filter-bar">
           <div class="search-input">
             <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <input type="search" id="search-cat" placeholder="Cari kategori…" autocomplete="off" />
+          </div>
+          <div class="chip-group" id="cat-type-filter" role="group" aria-label="Filter jenis kategori">
+            <button class="chip is-active" data-cattype="income" type="button">Pemasukan</button>
+            <button class="chip" data-cattype="expense" type="button">Pengeluaran</button>
           </div>
         </div>
 
