@@ -1081,6 +1081,7 @@
   const catSearchInput = document.getElementById("search-cat");
   catSearchInput.addEventListener("input", () => {
     catSearchTerm = catSearchInput.value.trim().toLowerCase();
+    catPage = 1;
     renderCategoryManageList();
   });
   const catTypeButtons = document.querySelectorAll("[data-cattype]");
@@ -1104,8 +1105,18 @@
         b.classList.toggle("is-active", active);
         b.setAttribute("aria-selected", String(active));
       });
+      catPage = 1;
       renderCategoryManageList();
     });
+  });
+
+  document.getElementById("cat-prev-page").addEventListener("click", () => {
+    catPage--;
+    renderCategoryManageList();
+  });
+  document.getElementById("cat-next-page").addEventListener("click", () => {
+    catPage++;
+    renderCategoryManageList();
   });
 
   /* ---- Modal Tambah Kategori ---- */
@@ -1153,6 +1164,8 @@
   });
 
   /* ---- Daftar kategori: mode lihat & mode edit per baris ---- */
+  let catPage = 1;
+
   function renderCategoryManageList() {
     let list = CATEGORIES[categoryManageType] || [];
     if (catSearchTerm) {
@@ -1160,23 +1173,35 @@
     }
     catListSub.textContent = categoryManageType === "income" ? "Kategori Pemasukan" : "Kategori Pengeluaran";
     const tableWrap = document.querySelector("#page-kategori .table-wrap");
+    const paginationEl = document.getElementById("cat-pagination");
     catManageList.innerHTML = "";
     if (list.length === 0) {
       tableWrap.style.display = "none";
       catManageEmpty.hidden = false;
       catManageEmpty.textContent = catSearchTerm ? "Tidak ada kategori yang cocok dengan pencarianmu." : "Belum ada kategori.";
+      paginationEl.hidden = true;
       return;
     }
     tableWrap.style.display = "";
     catManageEmpty.hidden = true;
-    list.forEach((cat) => catManageList.appendChild(buildCategoryRow(cat)));
+
+    const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    catPage = Math.min(Math.max(1, catPage), totalPages);
+    const pageList = list.slice((catPage - 1) * PAGE_SIZE, catPage * PAGE_SIZE);
+
+    paginationEl.hidden = totalPages <= 1;
+    document.getElementById("cat-page-info").textContent = `Halaman ${catPage} dari ${totalPages}`;
+    document.getElementById("cat-prev-page").disabled = catPage <= 1;
+    document.getElementById("cat-next-page").disabled = catPage >= totalPages;
+
+    pageList.forEach((cat) => catManageList.appendChild(buildCategoryRow(cat)));
   }
 
   function buildCategoryRow(cat) {
     const type = categoryManageType;
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>
+      <td data-label="Kategori">
         <span class="cat-view-icon">${escapeHtml(cat.icon)}</span>
         <span class="cat-view-label">${escapeHtml(cat.label)}</span>
         <span class="cat-edit-fields" hidden>
@@ -1184,7 +1209,7 @@
           <input type="text" class="cat-manage-input cat-edit-label" />
         </span>
       </td>
-      <td class="align-right">
+      <td class="align-right" data-label="Aksi">
         <span class="cat-actions" data-mode="view">
           <button type="button" class="icon-btn-sm cat-edit-btn" title="Edit kategori">
             <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1291,6 +1316,7 @@
 
   searchInput.addEventListener("input", () => {
     searchTerm = searchInput.value.trim().toLowerCase();
+    riwayatPage = 1;
     renderHistory();
   });
 
@@ -1299,14 +1325,28 @@
       filterChips.forEach((c) => c.classList.remove("is-active"));
       chip.classList.add("is-active");
       currentFilter = chip.dataset.filter;
+      riwayatPage = 1;
       renderHistory();
     });
   });
+
+  document.getElementById("riwayat-prev-page").addEventListener("click", () => {
+    riwayatPage--;
+    renderHistory();
+  });
+  document.getElementById("riwayat-next-page").addEventListener("click", () => {
+    riwayatPage++;
+    renderHistory();
+  });
+
+  const PAGE_SIZE = 10;
+  let riwayatPage = 1;
 
   function renderHistory() {
     const tbody = document.getElementById("tx-table-body");
     const emptyState = document.getElementById("riwayat-empty");
     const tableWrap = document.querySelector("#page-riwayat .table-wrap");
+    const paginationEl = document.getElementById("riwayat-pagination");
 
     let list = [...transactions].sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id));
     if (currentFilter !== "all") list = list.filter((t) => t.type === currentFilter);
@@ -1321,20 +1361,30 @@
     if (list.length === 0) {
       tableWrap.style.display = "none";
       emptyState.hidden = false;
+      paginationEl.hidden = true;
       return;
     }
     tableWrap.style.display = "";
     emptyState.hidden = true;
 
-    list.forEach((t) => {
+    const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    riwayatPage = Math.min(Math.max(1, riwayatPage), totalPages);
+    const pageList = list.slice((riwayatPage - 1) * PAGE_SIZE, riwayatPage * PAGE_SIZE);
+
+    paginationEl.hidden = totalPages <= 1;
+    document.getElementById("riwayat-page-info").textContent = `Halaman ${riwayatPage} dari ${totalPages}`;
+    document.getElementById("riwayat-prev-page").disabled = riwayatPage <= 1;
+    document.getElementById("riwayat-next-page").disabled = riwayatPage >= totalPages;
+
+    pageList.forEach((t) => {
       const cat = CATEGORY_LOOKUP[t.category] || { label: t.category, icon: "•" };
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${formatDateShort(t.date)}</td>
-        <td><span class="cat-badge ${t.type}">${cat.icon} ${escapeHtml(cat.label)}</span></td>
-        <td class="note-cell">${escapeHtml(t.note || "—")}</td>
-        <td class="align-right amount-cell ${t.type}">${t.type === "income" ? "+" : "−"} ${formatRupiah(t.amount)}</td>
-        <td class="align-right">
+        <td data-label="Tanggal">${formatDateShort(t.date)}</td>
+        <td data-label="Kategori"><span class="cat-badge ${t.type}">${cat.icon} ${escapeHtml(cat.label)}</span></td>
+        <td class="note-cell" data-label="Catatan">${escapeHtml(t.note || "—")}</td>
+        <td class="align-right amount-cell ${t.type}" data-label="Jumlah">${t.type === "income" ? "+" : "−"} ${formatRupiah(t.amount)}</td>
+        <td class="align-right" data-label="Aksi">
           <button class="row-edit" title="Edit transaksi" data-id="${t.id}" data-type="${t.type}">
             <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
