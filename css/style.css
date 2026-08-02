@@ -601,6 +601,43 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .row-delete:hover{ color: var(--brick); background: var(--brick-light); }
 .row-delete svg{ width:16px; height:16px; }
 
+/* Tabel jadi "kartu" di layar sempit — bukan scroll horizontal yang susah
+   dibaca. Header disembunyikan, tiap baris jadi blok dengan label kecil
+   di depan tiap nilai (dari atribut data-label). */
+@media (max-width: 640px){
+  .table-wrap{ overflow-x:visible; }
+  .tx-table thead{ display:none; }
+  .tx-table, .tx-table tbody, .tx-table tr, .tx-table td{ display:block; width:100%; }
+  .tx-table tr{
+    border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:10px;
+  }
+  .tx-table tr:last-child{ margin-bottom:0; }
+  .tx-table td{
+    border-bottom:1px solid var(--line); padding:8px 0;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; text-align:right;
+  }
+  .tx-table td:last-child{ border-bottom:none; }
+  .tx-table td::before{
+    content: attr(data-label); font-size:11px; font-weight:700; color: var(--ink-3);
+    text-transform:uppercase; letter-spacing:.03em; text-align:left; flex-shrink:0;
+  }
+  .tx-table td[data-label="Aksi"]::before{ display:none; }
+  .tx-table td[data-label="Aksi"]{ justify-content:flex-end; }
+  .note-cell{ max-width: 60%; }
+}
+
+/* ---------------- Pagination ---------------- */
+.pagination{ display:flex; align-items:center; justify-content:center; gap:16px; margin-top:16px; }
+.pagination-btn{
+  background:#fff; border:1.5px solid var(--line); border-radius:9px; padding:8px 10px; cursor:pointer;
+  color: var(--moss); display:flex; align-items:center; justify-content:center;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.pagination-btn:hover:not(:disabled){ background: var(--fern-light); color: var(--fern-dk); border-color: var(--fern); }
+.pagination-btn:disabled{ opacity:.4; cursor:not-allowed; }
+.pagination-btn svg{ width:16px; height:16px; }
+.pagination-info{ font-size:13px; font-weight:600; color: var(--moss); }
+
 /* ---------------- Toast ---------------- */
 .toast{
   position:fixed; bottom:24px; left:50%; transform: translateX(-50%) translateY(120%);
