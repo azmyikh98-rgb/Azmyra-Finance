@@ -1549,6 +1549,35 @@
     if (!userDropdown.hidden && !e.target.closest(".user-menu-wrap")) closeUserDropdown();
   });
 
+  /* ---------------- PWA: Install Aplikasi ---------------- */
+  let deferredInstallPrompt = null;
+  const installAppBtn = document.getElementById("install-app-btn");
+
+  // Chrome/Edge/Android menembak event ini kalau situsnya sudah "installable"
+  // (manifest + service worker valid). Kalau event ini tidak pernah muncul
+  // (misalnya di Safari/iOS), tombol Instal tetap tersembunyi selamanya —
+  // itu wajar, karena iOS memang tidak dukung prompt ini (harus manual
+  // lewat Share -> Add to Home Screen, lihat README).
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installAppBtn.hidden = false;
+  });
+
+  installAppBtn.addEventListener("click", async () => {
+    closeUserDropdown();
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installAppBtn.hidden = true;
+  });
+
+  window.addEventListener("appinstalled", () => {
+    installAppBtn.hidden = true;
+    showToast("Azmyra Finance berhasil diinstal ✓");
+  });
+
   /* ---------------- Logout ---------------- */
   document.getElementById("logout-btn").addEventListener("click", () => {
     closeUserDropdown();
@@ -1618,6 +1647,7 @@
     FIREBASE_CONFIG.apiKey &&
     !FIREBASE_CONFIG.apiKey.startsWith("TEMPEL_");
   let messagingInstance = null;
+  let swRegistration = null;
 
   function updateNotifButtonLabel() {
     if (!isFirebaseConfigured) {
@@ -1637,15 +1667,30 @@
     }
   }
 
+  // Daftarkan service worker SELALU (lepas dari status Firebase) — ini yang
+  // membuat aplikasi bisa di-"Install" sebagai PWA dan tetap bisa dibuka
+  // (versi terakhir) walau koneksi internet putus. Kalau Firebase sudah
+  // disetel, registration yang sama ini juga dipakai untuk push notification.
+  async function registerAppServiceWorker() {
+    if (!("serviceWorker" in navigator)) return null;
+    try {
+      swRegistration = await navigator.serviceWorker.register("firebase-messaging-sw.js");
+      return swRegistration;
+    } catch (err) {
+      console.error("Gagal mendaftarkan service worker:", err);
+      return null;
+    }
+  }
+
   async function initNotifications() {
     updateNotifButtonLabel();
+    const swReg = await registerAppServiceWorker();
     if (!isFirebaseConfigured) return;
-    if (typeof Notification === "undefined" || !("serviceWorker" in navigator)) return;
+    if (typeof Notification === "undefined" || !swReg) return;
 
     try {
-      const app = firebase.initializeApp(FIREBASE_CONFIG);
+      firebase.initializeApp(FIREBASE_CONFIG);
       messagingInstance = firebase.messaging();
-      const swReg = await navigator.serviceWorker.register("firebase-messaging-sw.js");
 
       // Kalau izin sudah pernah diberikan sebelumnya, langsung daftarkan ulang
       // token (token FCM bisa berubah dari waktu ke waktu).
@@ -1704,8 +1749,12 @@
       updateNotifButtonLabel();
       return;
     }
-    const swReg = await navigator.serviceWorker.getRegistration();
-    await registerFcmToken(swReg || (await navigator.serviceWorker.register("firebase-messaging-sw.js")));
+    const swReg = swRegistration || (await registerAppServiceWorker());
+    if (!swReg) {
+      showToast("Gagal menyiapkan service worker. Coba lagi.");
+      return;
+    }
+    await registerFcmToken(swReg);
     showToast("Notifikasi diaktifkan ✓");
   });
 
@@ -1742,6 +1791,7 @@
 
   /* ---------------- Init ---------------- */
   function init() {
+    registerAppServiceWorker();
     const stored = loadStoredUser();
     if (stored && stored.username) {
       currentUser = stored;
