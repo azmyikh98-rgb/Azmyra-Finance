@@ -43,7 +43,7 @@
    elemen tersebut. Tanpa ini, CSS penulis stylesheet bisa "menang" melawan
    default browser untuk [hidden], menyebabkan elemen tetap tampil. */
 [hidden]{ display: none !important; }
-html{ -webkit-text-size-adjust: 100%; }
+html{ -webkit-text-size-adjust: 100%; overflow-x: hidden; width: 100%; }
 body{
   margin: 0;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -63,6 +63,7 @@ img, svg{ display: block; }
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 .app-shell[hidden]{ display:none; }
 
