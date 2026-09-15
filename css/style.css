@@ -50,6 +50,7 @@ body{
   background: var(--mist);
   color: var(--pine);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 h1, h2, h3{ font-family: 'Fraunces', Georgia, serif; margin: 0; color: var(--pine); }
 button{ font-family: inherit; }
@@ -431,6 +432,19 @@ input[type="text"], input[type="date"], input[type="search"], input[type="passwo
 input:focus, select:focus{ border-color: var(--fern); box-shadow: 0 0 0 3.5px var(--fern-light); outline:none; }
 select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235B6B5E' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position: right 12px center; padding-right:36px; }
 
+/* input[type=date] punya gaya bawaan browser sendiri (teks rata tengah,
+   ikon kalender dengan padding internal) yang bikin ukurannya terlihat
+   beda dari field lain meski CSS-nya sama. Diseragamkan di sini. */
+input[type="date"]{
+  appearance:none; -webkit-appearance:none;
+  text-align:left;
+}
+input[type="date"]::-webkit-date-and-time-value{ text-align:left; margin:0; }
+input[type="date"]::-webkit-calendar-picker-indicator{
+  margin-left:auto; padding:0 0 0 8px; cursor:pointer; filter:opacity(0.55);
+}
+input[type="date"]::-webkit-datetime-edit{ text-align:left; }
+
 .password-field{ position:relative; display:flex; align-items:center; }
 .password-field input{ padding-right:46px; }
 .password-toggle{
@@ -602,7 +616,9 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .search-input input{ border:none; background:transparent; width:100%; font-size:14px; padding:0; }
 .search-input input:focus{ outline:none; }
 
-.chip-group{ display:flex; gap:8px; }
+.chip-group{ display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.chip-group::-webkit-scrollbar{ display:none; }
+.chip{ flex-shrink:0; }
 .chip{
   border:1.5px solid var(--line); background:#fff; color: var(--moss);
   padding:9px 16px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer;
