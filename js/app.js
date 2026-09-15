@@ -1310,13 +1310,17 @@
     return tr;
   }
 
-  /* ---------------- Riwayat ---------------- */
+  /* ---------------- Riwayat (kalender) ---------------- */
   const searchInput = document.getElementById("search-tx");
   const filterChips = document.querySelectorAll("#filter-type .chip");
+  const riwayatCalendarEl = document.getElementById("riwayat-calendar");
+  const riwayatCalLabel = document.getElementById("riwayat-cal-label");
+  let riwayatCalYear = new Date().getFullYear();
+  let riwayatCalMonth = new Date().getMonth();
+  const PAGE_SIZE = 10; // dipakai juga oleh pagination Kelola Kategori
 
   searchInput.addEventListener("input", () => {
     searchTerm = searchInput.value.trim().toLowerCase();
-    riwayatPage = 1;
     renderHistory();
   });
 
@@ -1325,86 +1329,134 @@
       filterChips.forEach((c) => c.classList.remove("is-active"));
       chip.classList.add("is-active");
       currentFilter = chip.dataset.filter;
-      riwayatPage = 1;
       renderHistory();
     });
   });
 
-  document.getElementById("riwayat-prev-page").addEventListener("click", () => {
-    riwayatPage--;
+  document.getElementById("riwayat-cal-prev").addEventListener("click", () => {
+    riwayatCalMonth--;
+    if (riwayatCalMonth < 0) { riwayatCalMonth = 11; riwayatCalYear--; }
     renderHistory();
   });
-  document.getElementById("riwayat-next-page").addEventListener("click", () => {
-    riwayatPage++;
+  document.getElementById("riwayat-cal-next").addEventListener("click", () => {
+    riwayatCalMonth++;
+    if (riwayatCalMonth > 11) { riwayatCalMonth = 0; riwayatCalYear++; }
     renderHistory();
   });
 
-  const PAGE_SIZE = 10;
-  let riwayatPage = 1;
+  // Kembalikan daftar transaksi pada satu tanggal ISO tertentu, sudah
+  // memperhitungkan filter jenis & pencarian yang aktif di Riwayat.
+  function getTxForDate(iso) {
+    return transactions.filter((t) => {
+      if (t.date !== iso) return false;
+      if (currentFilter !== "all" && t.type !== currentFilter) return false;
+      if (searchTerm) {
+        const cat = CATEGORY_LOOKUP[t.category] || { label: t.category };
+        const hit = cat.label.toLowerCase().includes(searchTerm) || (t.note || "").toLowerCase().includes(searchTerm);
+        if (!hit) return false;
+      }
+      return true;
+    });
+  }
 
   function renderHistory() {
-    const tbody = document.getElementById("tx-table-body");
     const emptyState = document.getElementById("riwayat-empty");
-    const tableWrap = document.querySelector("#page-riwayat .table-wrap");
-    const paginationEl = document.getElementById("riwayat-pagination");
+    riwayatCalLabel.textContent = `${MONTH_NAMES_FULL_ID[riwayatCalMonth]} ${riwayatCalYear}`;
+    riwayatCalendarEl.innerHTML = "";
 
-    let list = [...transactions].sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id));
-    if (currentFilter !== "all") list = list.filter((t) => t.type === currentFilter);
-    if (searchTerm) {
-      list = list.filter((t) => {
-        const cat = CATEGORY_LOOKUP[t.category] || { label: t.category };
-        return cat.label.toLowerCase().includes(searchTerm) || (t.note || "").toLowerCase().includes(searchTerm);
-      });
-    }
+    DAY_LABELS_ID.forEach((label) => {
+      const span = document.createElement("span");
+      span.className = "rcal-daylabel";
+      span.textContent = label;
+      riwayatCalendarEl.appendChild(span);
+    });
 
-    tbody.innerHTML = "";
-    if (list.length === 0) {
-      tableWrap.style.display = "none";
-      emptyState.hidden = false;
-      paginationEl.hidden = true;
-      return;
-    }
-    tableWrap.style.display = "";
-    emptyState.hidden = true;
+    const weeks = getWeeksInMonth(riwayatCalYear, riwayatCalMonth);
+    const today = todayISO();
+    let anyMatchInMonth = false;
 
-    const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
-    riwayatPage = Math.min(Math.max(1, riwayatPage), totalPages);
-    const pageList = list.slice((riwayatPage - 1) * PAGE_SIZE, riwayatPage * PAGE_SIZE);
+    weeks.forEach((w) => {
+      const startDate = parseISODate(w.start);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        const iso = toISODate(d);
+        const isOutside = d.getMonth() !== riwayatCalMonth;
+        const dayTx = isOutside ? [] : getTxForDate(iso);
+        if (dayTx.length) anyMatchInMonth = true;
 
-    paginationEl.hidden = totalPages <= 1;
-    document.getElementById("riwayat-page-info").textContent = `Halaman ${riwayatPage} dari ${totalPages}`;
-    document.getElementById("riwayat-prev-page").disabled = riwayatPage <= 1;
-    document.getElementById("riwayat-next-page").disabled = riwayatPage >= totalPages;
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "rcal-cell";
+        if (isOutside) cell.classList.add("is-outside");
+        if (iso === today) cell.classList.add("is-today");
+        if (!isOutside && (searchTerm || currentFilter !== "all") && dayTx.length === 0) cell.classList.add("is-dimmed");
 
-    pageList.forEach((t) => {
-      const cat = CATEGORY_LOOKUP[t.category] || { label: t.category, icon: "•" };
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td data-label="Tanggal">${formatDateShort(t.date)}</td>
-        <td data-label="Kategori"><span class="cat-badge ${t.type}">${cat.icon} ${escapeHtml(cat.label)}</span></td>
-        <td class="note-cell" data-label="Catatan">${escapeHtml(t.note || "—")}</td>
-        <td class="align-right amount-cell ${t.type}" data-label="Jumlah">${t.type === "income" ? "+" : "−"} ${formatRupiah(t.amount)}</td>
-        <td class="align-right" data-label="Aksi">
-          <button class="row-edit" title="Edit transaksi" data-id="${t.id}" data-type="${t.type}">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <button class="row-delete" title="Hapus transaksi" data-id="${t.id}" data-type="${t.type}">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </td>
+        const hasIncome = dayTx.some((t) => t.type === "income");
+        const hasExpense = dayTx.some((t) => t.type === "expense");
+        cell.innerHTML = `
+          <span class="rcal-daynum">${d.getDate()}</span>
+          <span class="rcal-dots">
+            ${hasIncome ? '<i class="dot" style="background:var(--fern)"></i>' : ""}
+            ${hasExpense ? '<i class="dot" style="background:var(--brick)"></i>' : ""}
+          </span>
+        `;
+        if (!isOutside) cell.addEventListener("click", () => openDayTxModal(iso));
+        riwayatCalendarEl.appendChild(cell);
+      }
+    });
+
+    emptyState.hidden = !(searchTerm || currentFilter !== "all") || anyMatchInMonth;
+  }
+
+  /* ---------------- Modal Transaksi per Tanggal ---------------- */
+  const dayTxModal = document.getElementById("day-tx-modal");
+  const dayTxModalClose = document.getElementById("day-tx-modal-close");
+  const dayTxModalTitle = document.getElementById("day-tx-modal-title");
+  const dayTxSummary = document.getElementById("day-tx-summary");
+  const dayTxList = document.getElementById("day-tx-list");
+  const dayTxEmpty = document.getElementById("day-tx-empty");
+  const dayTxAddBtn = document.getElementById("day-tx-add-btn");
+  let activeDayIso = null;
+
+  function renderDayTxModalContent() {
+    const dayTx = getTxForDate(activeDayIso).sort((a, b) => a.id.localeCompare(b.id));
+    const income = dayTx.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+    const expense = dayTx.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+
+    dayTxSummary.innerHTML = `
+      <span>Pemasukan<span class="val" style="color:var(--fern-dk)">${formatRupiah(income)}</span></span>
+      <span>Pengeluaran<span class="val" style="color:var(--brick)">${formatRupiah(expense)}</span></span>
+    `;
+
+    dayTxList.innerHTML = "";
+    dayTxEmpty.hidden = dayTx.length !== 0;
+    dayTxAddBtn.hidden = false;
+
+    dayTx.forEach((t) => {
+      const li = renderTxListItem(t);
+      const actions = document.createElement("div");
+      actions.className = "tx-actions";
+      actions.innerHTML = `
+        <button class="row-edit" title="Edit transaksi" data-id="${t.id}">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="row-delete" title="Hapus transaksi" data-id="${t.id}" data-type="${t.type}">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       `;
-      tbody.appendChild(tr);
+      li.appendChild(actions);
+      dayTxList.appendChild(li);
     });
 
-    tbody.querySelectorAll(".row-edit").forEach((btn) => {
+    dayTxList.querySelectorAll(".row-edit").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const id = btn.dataset.id;
-        const tx = transactions.find((t) => t.id === id);
-        if (tx) openEditTxModal(tx);
+        const tx = transactions.find((t) => t.id === btn.dataset.id);
+        if (tx) { closeDayTxModal(); openEditTxModal(tx); }
       });
     });
 
-    tbody.querySelectorAll(".row-delete").forEach((btn) => {
+    dayTxList.querySelectorAll(".row-delete").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
         const type = btn.dataset.type;
@@ -1421,6 +1473,7 @@
         try {
           await deleteTransactionRemote(id, type);
           transactions = transactions.filter((t) => t.id !== id);
+          renderDayTxModalContent();
           renderHistory();
           renderDashboard();
           showToast("Transaksi dihapus");
@@ -1432,6 +1485,26 @@
       });
     });
   }
+
+  function openDayTxModal(iso) {
+    activeDayIso = iso;
+    dayTxModalTitle.textContent = parseISODate(iso).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    renderDayTxModalContent();
+    dayTxModal.hidden = false;
+  }
+  function closeDayTxModal() {
+    dayTxModal.hidden = true;
+    activeDayIso = null;
+  }
+  dayTxModalClose.addEventListener("click", closeDayTxModal);
+  dayTxModal.addEventListener("click", (e) => { if (e.target === dayTxModal) closeDayTxModal(); });
+  dayTxAddBtn.addEventListener("click", () => {
+    const iso = activeDayIso;
+    closeDayTxModal();
+    goToRoute("tambah");
+    const dateInput = document.getElementById("tx-date");
+    if (dateInput) dateInput.value = iso;
+  });
 
   /* ---------------- Modal Edit Transaksi ---------------- */
   const editTxModal = document.getElementById("edit-tx-modal");

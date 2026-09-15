@@ -351,6 +351,42 @@ img, svg{ display: block; }
 }
 
 
+/* ---------------- Kalender Riwayat ---------------- */
+.cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.cal-nav-label{ font-size:16px; font-weight:700; color: var(--pine); }
+.rcal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; }
+.rcal-daylabel{ text-align:center; font-size:11px; font-weight:700; color: var(--ink-3); padding:2px 0 8px; }
+.rcal-cell{
+  position:relative; aspect-ratio:1/1; min-height:44px; border-radius:10px; border:1.5px solid transparent;
+  background: var(--mist); display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  padding:6px 2px 0; cursor:pointer; font-size:13px; color: var(--pine); transition: background .15s ease, border-color .15s ease;
+}
+.rcal-cell:hover{ background: var(--fern-light); }
+.rcal-cell.is-outside{ color: var(--ink-3); opacity:.4; cursor:default; }
+.rcal-cell.is-outside:hover{ background: var(--mist); }
+.rcal-cell.is-today{ border-color: var(--fern); font-weight:700; }
+.rcal-cell.is-dimmed{ opacity:.35; }
+.rcal-daynum{ line-height:1.2; }
+.rcal-dots{ display:flex; gap:3px; margin-top:4px; }
+.rcal-dots .dot{ width:6px; height:6px; border-radius:50%; display:block; }
+.rcal-legend{ margin-top:14px; }
+.day-tx-summary{
+  display:flex; gap:10px; margin-bottom:16px; padding:12px 14px; border-radius:12px; background: var(--mist);
+  font-size:13px; font-weight:600;
+}
+.day-tx-summary span{ flex:1; }
+.day-tx-summary .val{ display:block; font-size:15px; font-weight:700; margin-top:2px; }
+.tx-list--modal{ max-height:300px; overflow-y:auto; margin-bottom:16px; }
+.tx-list--modal li{ align-items:center; }
+.tx-list--modal .tx-actions{ display:flex; align-items:center; flex-shrink:0; }
+.tx-list--modal .tx-note{ max-width:130px; }
+
+@media (max-width: 560px){
+  .rcal-grid{ gap:4px; }
+  .rcal-cell{ min-height:38px; font-size:12px; border-radius:8px; }
+  .rcal-daylabel{ font-size:10px; }
+}
+
 /* ---------------- Modal ---------------- */
 .modal-overlay{
   position:fixed; inset:0; background: rgba(20,28,20,0.55); z-index:200;

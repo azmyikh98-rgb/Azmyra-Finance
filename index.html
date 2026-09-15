@@ -397,32 +397,26 @@
           </div>
         </div>
 
-        <div class="table-wrap">
-          <table class="tx-table" id="tx-table">
-            <thead>
-              <tr>
-                <th>Tanggal</th>
-                <th>Kategori</th>
-                <th>Catatan</th>
-                <th class="align-right">Jumlah</th>
-                <th class="align-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="tx-table-body"></tbody>
-          </table>
-        </div>
-        <div class="empty-state" id="riwayat-empty" hidden>
-          <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="#EEF2E9"/><path d="M20 34h24M20 26h16" stroke="#8AA394" stroke-width="2.5" stroke-linecap="round"/></svg>
-          <p>Tidak ada transaksi yang cocok dengan pencarianmu.</p>
-        </div>
-        <div class="pagination" id="riwayat-pagination" hidden>
-          <button type="button" class="pagination-btn" id="riwayat-prev-page" aria-label="Halaman sebelumnya">
+        <div class="cal-nav">
+          <button type="button" class="icon-btn-sm" id="riwayat-cal-prev" aria-label="Bulan sebelumnya">
             <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <span class="pagination-info" id="riwayat-page-info">Halaman 1 dari 1</span>
-          <button type="button" class="pagination-btn" id="riwayat-next-page" aria-label="Halaman berikutnya">
+          <span class="cal-nav-label" id="riwayat-cal-label">—</span>
+          <button type="button" class="icon-btn-sm" id="riwayat-cal-next" aria-label="Bulan berikutnya">
             <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
+        </div>
+
+        <div class="rcal-grid" id="riwayat-calendar"></div>
+
+        <div class="legend rcal-legend">
+          <span><i class="dot" style="background:var(--fern)"></i>Ada pemasukan</span>
+          <span><i class="dot" style="background:var(--brick)"></i>Ada pengeluaran</span>
+        </div>
+
+        <div class="empty-state" id="riwayat-empty" hidden>
+          <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="#EEF2E9"/><path d="M20 34h24M20 26h16" stroke="#8AA394" stroke-width="2.5" stroke-linecap="round"/></svg>
+          <p>Tidak ada transaksi yang cocok dengan pencarianmu di bulan ini.</p>
         </div>
       </div>
     </section>
@@ -572,6 +566,21 @@
         <span id="cat-submit-label">+ Tambah Kategori</span>
       </button>
     </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="day-tx-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="day-tx-modal-title">Transaksi</h2>
+      <button type="button" class="modal-close-btn" id="day-tx-modal-close" aria-label="Tutup">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="day-tx-summary" id="day-tx-summary"></div>
+    <ul class="tx-list tx-list--modal" id="day-tx-list"></ul>
+    <p class="empty-hint" id="day-tx-empty" hidden>Tidak ada transaksi pada tanggal ini.</p>
+    <button type="button" class="btn btn--primary btn--block" id="day-tx-add-btn">+ Tambah Transaksi di Tanggal Ini</button>
   </div>
 </div>
 
