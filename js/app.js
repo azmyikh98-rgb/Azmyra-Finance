@@ -537,6 +537,7 @@
     e.preventDefault();
     periodType = periodTypeSelect.value;
     renderPeriodPanels();
+    renderLaporan();
     showToast("Periode diterapkan ✓");
   });
 
@@ -607,6 +608,22 @@
     if (route === "tambah") {
       const dateInput = document.getElementById("tx-date");
       if (!dateInput.value) dateInput.value = todayISO();
+    }
+    movePeriodPanel(route);
+  }
+
+  // Panel "Lihat Periode" (dengan kalender harian/mingguan/bulanan/tahunan)
+  // dipakai bersama oleh Dashboard & Laporan — bukan diduplikasi, tapi
+  // benar-benar dipindah (appendChild) antar halaman saat berganti route.
+  // Karena elemennya sama persis (bukan salinan), semua id, event listener,
+  // dan state pilihan periode otomatis tetap sama & selalu sinkron di kedua
+  // halaman, tanpa perlu menulis ulang logikanya dua kali.
+  function movePeriodPanel(route) {
+    const panel = document.getElementById("period-panel");
+    if (route === "laporan") {
+      document.getElementById("laporan-period-slot").appendChild(panel);
+    } else {
+      document.getElementById("dashboard-period-slot").insertAdjacentElement("afterend", panel);
     }
   }
 
