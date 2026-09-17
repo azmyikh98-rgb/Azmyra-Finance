@@ -243,8 +243,9 @@ img, svg{ display: block; }
 }
 .ring-percent{ font-family:'Fraunces', serif; font-size:26px; font-weight:600; color:var(--pine); }
 .ring-caption{ font-size:12px; color:var(--ink-3); margin-top:2px; }
-.legend{ display:flex; justify-content:center; gap:22px; font-size:13px; color:var(--moss); }
-.legend i{ margin-right:7px; vertical-align:middle; }
+.legend{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px 22px; font-size:13px; color:var(--moss); }
+.legend span{ display:inline-flex; align-items:center; white-space:nowrap; }
+.legend i{ margin-right:7px; vertical-align:middle; flex-shrink:0; }
 
 /* ---------------- Category bars ---------------- */
 .bar-list{
@@ -630,7 +631,13 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
 .search-input input{ border:none; background:transparent; width:100%; font-size:14px; padding:0; }
 .search-input input:focus{ outline:none; }
 
-.chip-group{ display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.chip-group{
+  display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  /* Fade halus di kedua ujung sebagai petunjuk visual bahwa baris ini bisa
+     digeser ke samping, supaya chip yang terpotong tidak terlihat seperti bug. */
+  mask-image: linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);
+}
 .chip-group::-webkit-scrollbar{ display:none; }
 .chip{ flex-shrink:0; }
 .chip{
