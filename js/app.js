@@ -1008,7 +1008,8 @@
 
   /* ---------------- Tambah Transaksi form ---------------- */
   const typeButtons = document.querySelectorAll("#tx-type-switch .type-btn");
-  const sourceButtons = document.querySelectorAll("#tx-source-switch .source-btn");
+  const sourceSelect = document.getElementById("tx-source");
+  const fieldSourceLabel = document.getElementById("field-source-label");
   const categorySelect = document.getElementById("tx-category");
   const txForm = document.getElementById("tx-form");
   const amountInput = document.getElementById("tx-amount");
@@ -1031,11 +1032,7 @@
 
   function setFormSource(source) {
     currentSource = source;
-    sourceButtons.forEach((b) => {
-      const active = b.dataset.source === source;
-      b.classList.toggle("is-active", active);
-      b.setAttribute("aria-selected", String(active));
-    });
+    sourceSelect.value = source;
   }
 
   function setFormType(type) {
@@ -1054,6 +1051,10 @@
     categorySelect.required = !isTransfer;
     tarikTunaiHint.hidden = !isTransfer;
 
+    // Untuk Pemasukan, pertanyaannya "uangnya disimpan ke mana", bukan
+    // "dari mana" — jadi labelnya diganti supaya lebih pas secara makna.
+    fieldSourceLabel.textContent = type === "income" ? "Simpan Ke" : "Sumber Dana";
+
     if (!isTransfer) populateCategories(type);
 
     submitLabel.textContent =
@@ -1061,7 +1062,7 @@
   }
 
   typeButtons.forEach((btn) => btn.addEventListener("click", () => setFormType(btn.dataset.type)));
-  sourceButtons.forEach((btn) => btn.addEventListener("click", () => setFormSource(btn.dataset.source)));
+  sourceSelect.addEventListener("change", () => setFormSource(sourceSelect.value));
 
   amountInput.addEventListener("input", () => {
     const digits = amountInput.value.replace(/\D/g, "");
@@ -1592,22 +1593,19 @@
   const editTxSubmitBtn = document.getElementById("edit-tx-submit");
   const editTxSubmitLabel = document.getElementById("edit-tx-submit-label");
   const editFieldSource = document.getElementById("edit-field-source");
+  const editFieldSourceLabel = document.getElementById("edit-field-source-label");
   const editFieldCategory = document.getElementById("edit-field-category");
   const editFieldRowCategory = document.getElementById("edit-field-row-category");
-  const editSourceButtons = document.querySelectorAll("#edit-tx-source-switch .source-btn");
+  const editSourceSelect = document.getElementById("edit-tx-source");
   let editingTxId = null;
   let editingTxType = null;
   let editingTxSource = "rekening";
 
   function setEditFormSource(source) {
     editingTxSource = source;
-    editSourceButtons.forEach((b) => {
-      const active = b.dataset.source === source;
-      b.classList.toggle("is-active", active);
-      b.setAttribute("aria-selected", String(active));
-    });
+    editSourceSelect.value = source;
   }
-  editSourceButtons.forEach((btn) => btn.addEventListener("click", () => setEditFormSource(btn.dataset.source)));
+  editSourceSelect.addEventListener("change", () => setEditFormSource(editSourceSelect.value));
 
   function openEditTxModal(tx) {
     editingTxId = tx.id;
@@ -1619,6 +1617,7 @@
     editFieldCategory.hidden = isTransfer;
     editFieldRowCategory.classList.toggle("field-row--single", isTransfer);
     editTxCategorySelect.required = !isTransfer;
+    editFieldSourceLabel.textContent = tx.type === "income" ? "Simpan Ke" : "Sumber Dana";
 
     if (!isTransfer) {
       editTxCategorySelect.innerHTML = "";

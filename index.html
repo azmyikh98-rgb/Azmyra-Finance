@@ -367,11 +367,11 @@
           </div>
 
           <div class="field" id="field-source">
-            <label>Sumber Dana</label>
-            <div class="type-switch type-switch--source" id="tx-source-switch" role="tablist" aria-label="Sumber dana">
-              <button class="type-btn source-btn" data-source="cash" role="tab" aria-selected="false" type="button">💵 Cash</button>
-              <button class="type-btn source-btn is-active" data-source="rekening" role="tab" aria-selected="true" type="button">🏦 Rekening</button>
-            </div>
+            <label for="tx-source" id="field-source-label">Sumber Dana</label>
+            <select id="tx-source">
+              <option value="cash">💵 Cash</option>
+              <option value="rekening" selected>🏦 Rekening</option>
+            </select>
           </div>
 
           <div class="field-row" id="field-row-category">
@@ -629,11 +629,11 @@
         <p class="field-error" id="edit-tx-err-amount" hidden>Masukkan jumlah yang valid, ya.</p>
       </div>
       <div class="field" id="edit-field-source">
-        <label>Sumber Dana</label>
-        <div class="type-switch type-switch--source" id="edit-tx-source-switch" role="tablist" aria-label="Sumber dana">
-          <button class="type-btn source-btn" data-source="cash" role="tab" aria-selected="false" type="button">💵 Cash</button>
-          <button class="type-btn source-btn is-active" data-source="rekening" role="tab" aria-selected="true" type="button">🏦 Rekening</button>
-        </div>
+        <label for="edit-tx-source" id="edit-field-source-label">Sumber Dana</label>
+        <select id="edit-tx-source">
+          <option value="cash">💵 Cash</option>
+          <option value="rekening" selected>🏦 Rekening</option>
+        </select>
       </div>
       <div class="field-row" id="edit-field-row-category">
         <div class="field" id="edit-field-category">
