@@ -176,6 +176,7 @@ img, svg{ display: block; }
 }
 
 .stat-row{ display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-bottom:20px; }
+.stat-row--wallet{ grid-template-columns:repeat(2, 1fr); }
 .stat-card{ display:flex; flex-direction:column; gap:6px; }
 .stat-card-label{ font-size:12.5px; font-weight:700; color: var(--moss); text-transform:uppercase; letter-spacing:.03em; }
 .stat-card-value{ font-family:'Fraunces', serif; font-size:25px; font-weight:600; color: var(--pine); font-variant-numeric: tabular-nums; }
@@ -275,6 +276,7 @@ img, svg{ display: block; }
 }
 .tx-icon.income{ background: var(--fern-light); }
 .tx-icon.expense{ background: var(--brick-light); }
+.tx-icon.tarik_tunai{ background: var(--honey-light); }
 .tx-meta{ min-width:0; }
 .tx-cat{ font-weight:700; font-size:14px; color:var(--pine); }
 .tx-note{ font-size:12.5px; color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
@@ -282,6 +284,7 @@ img, svg{ display: block; }
 .tx-amount{ font-weight:700; font-size:14.5px; font-variant-numeric: tabular-nums; }
 .tx-amount.income{ color: var(--fern-dk); }
 .tx-amount.expense{ color: var(--brick); }
+.tx-amount.tarik_tunai{ color:#B8862F; }
 .tx-date{ font-size:11.5px; color:var(--ink-3); margin-top:2px; }
 
 /* ---------------- Empty states ---------------- */
@@ -465,6 +468,10 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
 .amount-input input{ padding-left:42px; font-weight:700; font-variant-numeric: tabular-nums; }
 
 .field-error{ color: var(--brick); font-size:12.5px; margin-top:6px; }
+.field-hint{ color: var(--ink-3); font-size:12.5px; margin:-8px 0 18px; }
+.type-switch--source{ margin-bottom:0; padding:4px; }
+.type-switch--source .source-btn{ padding:9px; font-size:13px; }
+.field-row--single{ grid-template-columns:1fr; }
 .form-success{
   margin-top:14px; text-align:center; color: var(--fern-dk); background: var(--fern-light);
   padding:10px; border-radius:10px; font-weight:700; font-size:13.5px;

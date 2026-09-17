@@ -184,6 +184,17 @@
         </div>
       </div>
 
+      <div class="stat-row stat-row--wallet">
+        <div class="panel stat-card">
+          <span class="stat-card-label">💵 Dompet Cash</span>
+          <span class="stat-card-value" id="wallet-cash">Rp 0</span>
+        </div>
+        <div class="panel stat-card">
+          <span class="stat-card-label">🏦 Rekening</span>
+          <span class="stat-card-value" id="wallet-rekening">Rp 0</span>
+        </div>
+      </div>
+
       <div class="panel period-panel">
         <div class="panel-head">
           <h2>Lihat Periode</h2>
@@ -330,7 +341,7 @@
       </div>
 
       <div class="panel panel--form">
-        <div class="type-switch" role="tablist" aria-label="Jenis transaksi">
+        <div class="type-switch" id="tx-type-switch" role="tablist" aria-label="Jenis transaksi">
           <button class="type-btn is-active" data-type="income" role="tab" aria-selected="true" type="button">
             <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Pemasukan
@@ -338,6 +349,10 @@
           <button class="type-btn" data-type="expense" role="tab" aria-selected="false" type="button">
             <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Pengeluaran
+          </button>
+          <button class="type-btn" data-type="tarik_tunai" role="tab" aria-selected="false" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="13" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12.5" r="2.5" stroke="currentColor" stroke-width="2"/></svg>
+            Tarik Tunai
           </button>
         </div>
 
@@ -351,8 +366,16 @@
             <p class="field-error" id="err-amount" hidden>Masukkan jumlah yang valid, ya.</p>
           </div>
 
-          <div class="field-row">
-            <div class="field">
+          <div class="field" id="field-source">
+            <label>Sumber Dana</label>
+            <div class="type-switch type-switch--source" id="tx-source-switch" role="tablist" aria-label="Sumber dana">
+              <button class="type-btn source-btn is-active" data-source="cash" role="tab" aria-selected="true" type="button">💵 Cash</button>
+              <button class="type-btn source-btn" data-source="rekening" role="tab" aria-selected="false" type="button">🏦 Rekening</button>
+            </div>
+          </div>
+
+          <div class="field-row" id="field-row-category">
+            <div class="field" id="field-category">
               <label for="tx-category">Kategori</label>
               <select id="tx-category" name="category" required></select>
             </div>
@@ -361,6 +384,8 @@
               <input type="date" id="tx-date" name="date" required />
             </div>
           </div>
+
+          <p class="field-hint" id="tarik-tunai-hint" hidden>Tarik tunai memindahkan saldo dari Rekening ke Dompet Cash.</p>
 
           <div class="field">
             <label for="tx-note">Catatan <span class="label-optional">(opsional)</span></label>
@@ -394,6 +419,7 @@
             <button class="chip is-active" data-filter="all" type="button">Semua</button>
             <button class="chip" data-filter="income" type="button">Pemasukan</button>
             <button class="chip" data-filter="expense" type="button">Pengeluaran</button>
+            <button class="chip" data-filter="tarik_tunai" type="button">Tarik Tunai</button>
           </div>
         </div>
 
@@ -412,6 +438,7 @@
         <div class="legend rcal-legend">
           <span><i class="dot" style="background:var(--fern)"></i>Ada pemasukan</span>
           <span><i class="dot" style="background:var(--brick)"></i>Ada pengeluaran</span>
+          <span><i class="dot" style="background:var(--honey)"></i>Ada tarik tunai</span>
         </div>
 
         <div class="empty-state" id="riwayat-empty" hidden>
@@ -601,8 +628,15 @@
         </div>
         <p class="field-error" id="edit-tx-err-amount" hidden>Masukkan jumlah yang valid, ya.</p>
       </div>
-      <div class="field-row">
-        <div class="field">
+      <div class="field" id="edit-field-source">
+        <label>Sumber Dana</label>
+        <div class="type-switch type-switch--source" id="edit-tx-source-switch" role="tablist" aria-label="Sumber dana">
+          <button class="type-btn source-btn is-active" data-source="cash" role="tab" aria-selected="true" type="button">💵 Cash</button>
+          <button class="type-btn source-btn" data-source="rekening" role="tab" aria-selected="false" type="button">🏦 Rekening</button>
+        </div>
+      </div>
+      <div class="field-row" id="edit-field-row-category">
+        <div class="field" id="edit-field-category">
           <label for="edit-tx-category">Kategori</label>
           <select id="edit-tx-category" required></select>
         </div>

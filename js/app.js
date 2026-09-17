@@ -35,6 +35,7 @@
   /* ---------------- State ---------------- */
   let transactions = [];
   let currentType = "income"; // untuk form Tambah
+  let currentSource = "cash"; // sumber dana untuk form Tambah (cash | rekening)
   let currentFilter = "all"; // untuk Riwayat
   let searchTerm = "";
   let periodType = "monthly"; // daily | weekly | monthly | yearly
@@ -662,6 +663,31 @@
     document.getElementById("stat-balance").textContent = formatRupiah(balance);
     document.getElementById("stat-income").textContent = formatRupiah(totalIncome);
     document.getElementById("stat-expense").textContent = formatRupiah(totalExpense);
+
+    const wallet = computeWalletBalances();
+    document.getElementById("wallet-cash").textContent = formatRupiah(wallet.cash);
+    document.getElementById("wallet-rekening").textContent = formatRupiah(wallet.rekening);
+  }
+
+  // Saldo per dompet: pemasukan/pengeluaran dipisah menurut sumber dananya
+  // (cash/rekening), lalu tarik tunai memindahkan saldo dari Rekening ke
+  // Cash. Cash + Rekening selalu sama dengan (total pemasukan - total
+  // pengeluaran), karena tarik tunai saling meniadakan di jumlah total.
+  function computeWalletBalances() {
+    let cash = 0;
+    let rekening = 0;
+    transactions.forEach((t) => {
+      const amt = Number(t.amount) || 0;
+      if (t.type === "income") {
+        if (t.source === "rekening") rekening += amt; else cash += amt;
+      } else if (t.type === "expense") {
+        if (t.source === "rekening") rekening -= amt; else cash -= amt;
+      } else if (t.type === "tarik_tunai") {
+        cash += amt;
+        rekening -= amt;
+      }
+    });
+    return { cash, rekening };
   }
 
   /* ---------------- Dashboard: panel yang mengikuti periode terpilih ---------------- */
@@ -952,7 +978,11 @@
   }
 
   function renderTxListItem(t) {
-    const cat = CATEGORY_LOOKUP[t.category] || { label: t.category, icon: "•" };
+    const cat =
+      t.type === "tarik_tunai"
+        ? { label: "Tarik Tunai", icon: "🏧" }
+        : CATEGORY_LOOKUP[t.category] || { label: t.category, icon: "•" };
+    const sign = t.type === "income" ? "+" : t.type === "expense" ? "−" : "⇄";
     const li = document.createElement("li");
     li.innerHTML = `
       <div class="tx-left">
@@ -963,7 +993,7 @@
         </div>
       </div>
       <div class="tx-right">
-        <div class="tx-amount ${t.type}">${t.type === "income" ? "+" : "−"} ${formatRupiah(t.amount)}</div>
+        <div class="tx-amount ${t.type}">${sign} ${formatRupiah(t.amount)}</div>
         <div class="tx-date">${formatDateShort(t.date)}</div>
       </div>
     `;
@@ -977,20 +1007,34 @@
   }
 
   /* ---------------- Tambah Transaksi form ---------------- */
-  const typeButtons = document.querySelectorAll(".type-btn");
+  const typeButtons = document.querySelectorAll("#tx-type-switch .type-btn");
+  const sourceButtons = document.querySelectorAll("#tx-source-switch .source-btn");
   const categorySelect = document.getElementById("tx-category");
   const txForm = document.getElementById("tx-form");
   const amountInput = document.getElementById("tx-amount");
   const submitLabel = document.getElementById("tx-submit-label");
   const submitBtn = document.getElementById("tx-submit");
+  const fieldSource = document.getElementById("field-source");
+  const fieldCategory = document.getElementById("field-category");
+  const fieldRowCategory = document.getElementById("field-row-category");
+  const tarikTunaiHint = document.getElementById("tarik-tunai-hint");
 
   function populateCategories(type) {
     categorySelect.innerHTML = "";
-    CATEGORIES[type].forEach((c) => {
+    (CATEGORIES[type] || []).forEach((c) => {
       const opt = document.createElement("option");
       opt.value = c.id;
       opt.textContent = `${c.icon}  ${c.label}`;
       categorySelect.appendChild(opt);
+    });
+  }
+
+  function setFormSource(source) {
+    currentSource = source;
+    sourceButtons.forEach((b) => {
+      const active = b.dataset.source === source;
+      b.classList.toggle("is-active", active);
+      b.setAttribute("aria-selected", String(active));
     });
   }
 
@@ -1001,11 +1045,23 @@
       b.classList.toggle("is-active", active);
       b.setAttribute("aria-selected", String(active));
     });
-    populateCategories(type);
-    submitLabel.textContent = type === "income" ? "Simpan Pemasukan" : "Simpan Pengeluaran";
+
+    const isTransfer = type === "tarik_tunai";
+    // Tarik tunai tidak perlu Kategori atau Sumber Dana (selalu Rekening -> Cash).
+    fieldSource.hidden = isTransfer;
+    fieldCategory.hidden = isTransfer;
+    fieldRowCategory.classList.toggle("field-row--single", isTransfer);
+    categorySelect.required = !isTransfer;
+    tarikTunaiHint.hidden = !isTransfer;
+
+    if (!isTransfer) populateCategories(type);
+
+    submitLabel.textContent =
+      type === "income" ? "Simpan Pemasukan" : type === "expense" ? "Simpan Pengeluaran" : "Simpan Tarik Tunai";
   }
 
   typeButtons.forEach((btn) => btn.addEventListener("click", () => setFormType(btn.dataset.type)));
+  sourceButtons.forEach((btn) => btn.addEventListener("click", () => setFormSource(btn.dataset.source)));
 
   amountInput.addEventListener("input", () => {
     const digits = amountInput.value.replace(/\D/g, "");
@@ -1028,23 +1084,28 @@
     }
     errAmount.hidden = true;
 
-    const catObj = CATEGORY_LOOKUP[categorySelect.value] || { label: categorySelect.value, icon: "" };
-    const jenisLabel = currentType === "income" ? "pemasukan" : "pengeluaran";
-    const ok = await askConfirm(
-      "Simpan Transaksi",
-      `Simpan ${jenisLabel} ${catObj.icon} ${catObj.label} sebesar ${formatRupiah(rawAmount)}?`,
-      "Ya, Simpan"
-    );
+    const isTransfer = currentType === "tarik_tunai";
+    let confirmMsg;
+    if (isTransfer) {
+      confirmMsg = `Catat tarik tunai sebesar ${formatRupiah(rawAmount)}? Saldo akan dipindahkan dari Rekening ke Dompet Cash.`;
+    } else {
+      const catObj = CATEGORY_LOOKUP[categorySelect.value] || { label: categorySelect.value, icon: "" };
+      const jenisLabel = currentType === "income" ? "pemasukan" : "pengeluaran";
+      const sumberLabel = currentSource === "rekening" ? "Rekening" : "Cash";
+      confirmMsg = `Simpan ${jenisLabel} ${catObj.icon} ${catObj.label} sebesar ${formatRupiah(rawAmount)} dari ${sumberLabel}?`;
+    }
+    const ok = await askConfirm("Simpan Transaksi", confirmMsg, "Ya, Simpan");
     if (!ok) return;
 
     const newTx = {
       id: uid(),
       type: currentType,
-      category: categorySelect.value,
+      category: isTransfer ? "" : categorySelect.value,
       amount: rawAmount,
       note: document.getElementById("tx-note").value.trim(),
       date: document.getElementById("tx-date").value || todayISO(),
     };
+    if (!isTransfer) newTx.source = currentSource;
 
     submitBtn.disabled = true;
     const originalLabel = submitLabel.textContent;
@@ -1058,11 +1119,18 @@
       const successEl = document.getElementById("form-success");
       successEl.hidden = false;
       setTimeout(() => (successEl.hidden = true), 2200);
-      showToast(currentType === "income" ? "Pemasukan berhasil dicatat ✓" : "Pengeluaran berhasil dicatat ✓");
+      showToast(
+        currentType === "income"
+          ? "Pemasukan berhasil dicatat ✓"
+          : currentType === "expense"
+          ? "Pengeluaran berhasil dicatat ✓"
+          : "Tarik tunai berhasil dicatat ✓"
+      );
 
       txForm.reset();
       document.getElementById("tx-date").value = todayISO();
       setFormType(currentType);
+      setFormSource("cash");
 
       renderDashboard();
       renderHistory();
@@ -1351,7 +1419,8 @@
       if (t.date !== iso) return false;
       if (currentFilter !== "all" && t.type !== currentFilter) return false;
       if (searchTerm) {
-        const cat = CATEGORY_LOOKUP[t.category] || { label: t.category };
+        const cat =
+          t.type === "tarik_tunai" ? { label: "Tarik Tunai" } : CATEGORY_LOOKUP[t.category] || { label: t.category };
         const hit = cat.label.toLowerCase().includes(searchTerm) || (t.note || "").toLowerCase().includes(searchTerm);
         if (!hit) return false;
       }
@@ -1394,11 +1463,13 @@
 
         const hasIncome = dayTx.some((t) => t.type === "income");
         const hasExpense = dayTx.some((t) => t.type === "expense");
+        const hasTransfer = dayTx.some((t) => t.type === "tarik_tunai");
         cell.innerHTML = `
           <span class="rcal-daynum">${d.getDate()}</span>
           <span class="rcal-dots">
             ${hasIncome ? '<i class="dot" style="background:var(--fern)"></i>' : ""}
             ${hasExpense ? '<i class="dot" style="background:var(--brick)"></i>' : ""}
+            ${hasTransfer ? '<i class="dot" style="background:var(--honey)"></i>' : ""}
           </span>
         `;
         if (!isOutside) cell.addEventListener("click", () => openDayTxModal(iso));
@@ -1461,7 +1532,11 @@
         const id = btn.dataset.id;
         const type = btn.dataset.type;
         const tx = transactions.find((t) => t.id === id);
-        const cat = tx ? (CATEGORY_LOOKUP[tx.category] || { label: tx.category }) : { label: "" };
+        const cat = tx
+          ? tx.type === "tarik_tunai"
+            ? { label: "Tarik Tunai" }
+            : CATEGORY_LOOKUP[tx.category] || { label: tx.category }
+          : { label: "" };
         const ok = await askConfirm(
           "Hapus Transaksi",
           `Yakin ingin menghapus transaksi ${cat.label}${tx ? " sebesar " + formatRupiah(tx.amount) : ""}? Tindakan ini tidak bisa dibatalkan.`,
@@ -1516,21 +1591,47 @@
   const editTxNoteInput = document.getElementById("edit-tx-note");
   const editTxSubmitBtn = document.getElementById("edit-tx-submit");
   const editTxSubmitLabel = document.getElementById("edit-tx-submit-label");
+  const editFieldSource = document.getElementById("edit-field-source");
+  const editFieldCategory = document.getElementById("edit-field-category");
+  const editFieldRowCategory = document.getElementById("edit-field-row-category");
+  const editSourceButtons = document.querySelectorAll("#edit-tx-source-switch .source-btn");
   let editingTxId = null;
   let editingTxType = null;
+  let editingTxSource = "cash";
+
+  function setEditFormSource(source) {
+    editingTxSource = source;
+    editSourceButtons.forEach((b) => {
+      const active = b.dataset.source === source;
+      b.classList.toggle("is-active", active);
+      b.setAttribute("aria-selected", String(active));
+    });
+  }
+  editSourceButtons.forEach((btn) => btn.addEventListener("click", () => setEditFormSource(btn.dataset.source)));
 
   function openEditTxModal(tx) {
     editingTxId = tx.id;
     editingTxType = tx.type;
+    const isTransfer = tx.type === "tarik_tunai";
+
     editTxAmountInput.value = Number(tx.amount).toLocaleString("id-ID");
-    editTxCategorySelect.innerHTML = "";
-    (CATEGORIES[tx.type] || []).forEach((c) => {
-      const opt = document.createElement("option");
-      opt.value = c.id;
-      opt.textContent = `${c.icon}  ${c.label}`;
-      editTxCategorySelect.appendChild(opt);
-    });
-    editTxCategorySelect.value = tx.category;
+    editFieldSource.hidden = isTransfer;
+    editFieldCategory.hidden = isTransfer;
+    editFieldRowCategory.classList.toggle("field-row--single", isTransfer);
+    editTxCategorySelect.required = !isTransfer;
+
+    if (!isTransfer) {
+      editTxCategorySelect.innerHTML = "";
+      (CATEGORIES[tx.type] || []).forEach((c) => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = `${c.icon}  ${c.label}`;
+        editTxCategorySelect.appendChild(opt);
+      });
+      editTxCategorySelect.value = tx.category;
+      setEditFormSource(tx.source === "rekening" ? "rekening" : "cash");
+    }
+
     editTxDateInput.value = tx.date;
     editTxNoteInput.value = tx.note || "";
     document.getElementById("edit-tx-err-amount").hidden = true;
@@ -1562,20 +1663,25 @@
     }
     errAmount.hidden = true;
 
+    const isTransfer = editingTxType === "tarik_tunai";
     const updatedTx = {
       id: editingTxId,
       type: editingTxType,
-      category: editTxCategorySelect.value,
+      category: isTransfer ? "" : editTxCategorySelect.value,
       amount: rawAmount,
       note: editTxNoteInput.value.trim(),
       date: editTxDateInput.value || todayISO(),
     };
-    const catObj = CATEGORY_LOOKUP[updatedTx.category] || { label: updatedTx.category, icon: "" };
-    const ok = await askConfirm(
-      "Simpan Perubahan",
-      `Simpan perubahan transaksi ${catObj.icon} ${catObj.label} sebesar ${formatRupiah(rawAmount)}?`,
-      "Ya, Simpan"
-    );
+    if (!isTransfer) updatedTx.source = editingTxSource;
+
+    let confirmMsg;
+    if (isTransfer) {
+      confirmMsg = `Simpan perubahan tarik tunai sebesar ${formatRupiah(rawAmount)}?`;
+    } else {
+      const catObj = CATEGORY_LOOKUP[updatedTx.category] || { label: updatedTx.category, icon: "" };
+      confirmMsg = `Simpan perubahan transaksi ${catObj.icon} ${catObj.label} sebesar ${formatRupiah(rawAmount)}?`;
+    }
+    const ok = await askConfirm("Simpan Perubahan", confirmMsg, "Ya, Simpan");
     if (!ok) return;
 
     editTxSubmitBtn.disabled = true;
