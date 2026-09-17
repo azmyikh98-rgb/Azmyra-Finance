@@ -150,9 +150,10 @@ function readTransactionRows(sheet, type) {
       note: r[3] ? String(r[3]) : "",
       date: formatDateCell(r[4]),
       user: r[5] ? String(r[5]) : "",
-      // Transaksi lama yang belum punya kolom/isi "source" otomatis
-      // dianggap "cash", supaya tidak ada data yang jadi rusak/hilang.
-      source: sourceIdx >= 0 && r[sourceIdx] ? String(r[sourceIdx]) : "cash",
+      // Transaksi lama yang belum punya kolom/isi "source" default-nya
+      // dianggap "rekening" (bukan "cash"), sesuai kondisi nyata: saldo
+      // lama tersebut memang uang di rekening, bukan uang tunai fisik.
+      source: sourceIdx >= 0 && r[sourceIdx] ? String(r[sourceIdx]) : "rekening",
     }));
 }
 
@@ -246,7 +247,7 @@ function handleAdd(body) {
   const sheet = t.type === "income" ? getIncomeSheet() : getExpenseSheet();
   const sourceCol = ensureColumn(sheet, "source");
   sheet.appendRow([t.id, t.category || "", Number(t.amount), t.note || "", t.date || "", username]);
-  sheet.getRange(sheet.getLastRow(), sourceCol).setValue(t.source === "rekening" ? "rekening" : "cash");
+  sheet.getRange(sheet.getLastRow(), sourceCol).setValue(t.source === "cash" ? "cash" : "rekening");
 
   logActivity(
     username,
@@ -320,7 +321,7 @@ function handleUpdateTransaction(body) {
       sheet.getRange(i + 1, 3).setValue(Number(t.amount) || 0);
       sheet.getRange(i + 1, 4).setValue(t.note || "");
       sheet.getRange(i + 1, 5).setValue(t.date || "");
-      sheet.getRange(i + 1, sourceCol).setValue(t.source === "rekening" ? "rekening" : "cash");
+      sheet.getRange(i + 1, sourceCol).setValue(t.source === "cash" ? "cash" : "rekening");
       logActivity(username, "edit", `Edit transaksi ${t.type === "income" ? "pemasukan" : "pengeluaran"} (id: ${t.id}) — ${t.category} Rp${t.amount}`);
       return respondJson({ success: true });
     }

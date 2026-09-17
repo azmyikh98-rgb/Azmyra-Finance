@@ -35,7 +35,7 @@
   /* ---------------- State ---------------- */
   let transactions = [];
   let currentType = "income"; // untuk form Tambah
-  let currentSource = "cash"; // sumber dana untuk form Tambah (cash | rekening)
+  let currentSource = "rekening"; // sumber dana untuk form Tambah (cash | rekening)
   let currentFilter = "all"; // untuk Riwayat
   let searchTerm = "";
   let periodType = "monthly"; // daily | weekly | monthly | yearly
@@ -679,9 +679,9 @@
     transactions.forEach((t) => {
       const amt = Number(t.amount) || 0;
       if (t.type === "income") {
-        if (t.source === "rekening") rekening += amt; else cash += amt;
+        if (t.source === "cash") cash += amt; else rekening += amt;
       } else if (t.type === "expense") {
-        if (t.source === "rekening") rekening -= amt; else cash -= amt;
+        if (t.source === "cash") cash -= amt; else rekening -= amt;
       } else if (t.type === "tarik_tunai") {
         cash += amt;
         rekening -= amt;
@@ -1130,7 +1130,7 @@
       txForm.reset();
       document.getElementById("tx-date").value = todayISO();
       setFormType(currentType);
-      setFormSource("cash");
+      setFormSource("rekening");
 
       renderDashboard();
       renderHistory();
@@ -1597,7 +1597,7 @@
   const editSourceButtons = document.querySelectorAll("#edit-tx-source-switch .source-btn");
   let editingTxId = null;
   let editingTxType = null;
-  let editingTxSource = "cash";
+  let editingTxSource = "rekening";
 
   function setEditFormSource(source) {
     editingTxSource = source;
@@ -1629,7 +1629,7 @@
         editTxCategorySelect.appendChild(opt);
       });
       editTxCategorySelect.value = tx.category;
-      setEditFormSource(tx.source === "rekening" ? "rekening" : "cash");
+      setEditFormSource(tx.source === "cash" ? "cash" : "rekening");
     }
 
     editTxDateInput.value = tx.date;
