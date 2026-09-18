@@ -573,7 +573,12 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
 .user-badge[aria-expanded="true"] .user-badge-chevron{ transform: rotate(180deg); }
 
 .user-dropdown{
-  position:absolute; bottom: calc(100% + 8px); left:0; right:0; z-index:40;
+  /* position:fixed dipakai di SEMUA ukuran layar (bukan cuma tablet/HP) —
+     karena elemen ini sekarang hidup di luar <aside class="sidebar">,
+     absolute-relative-ke-parent tidak relevan lagi. Posisi default di
+     bawah ini untuk desktop (dekat avatar di footer sidebar); tablet &
+     mobile menimpanya lewat media query sesuai lokasi trigger masing-masing. */
+  position:fixed; left:20px; bottom:20px; width:224px; right:auto; z-index:40;
   background:#fff; border-radius:12px; box-shadow: var(--shadow-lg); overflow:hidden; padding:6px;
 }
 .user-dropdown-item{

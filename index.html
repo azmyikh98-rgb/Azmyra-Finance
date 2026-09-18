@@ -107,24 +107,6 @@
 
     <div class="sidebar-footer">
       <div class="user-menu-wrap">
-        <div class="user-dropdown" id="user-dropdown" hidden>
-          <button type="button" class="user-dropdown-item" id="reset-data" title="Muat ulang data terbaru dari Spreadsheet">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 1 0 3-6.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 4v5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Muat Ulang Data</span>
-          </button>
-          <button type="button" class="user-dropdown-item" id="install-app-btn" hidden>
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Instal Aplikasi</span>
-          </button>
-          <button type="button" class="user-dropdown-item" id="notif-btn">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-            <span id="notif-btn-label">Aktifkan Notifikasi</span>
-          </button>
-          <button type="button" class="user-dropdown-item user-dropdown-item--danger" id="logout-btn">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Keluar</span>
-          </button>
-        </div>
         <button type="button" class="user-badge" id="user-badge" aria-haspopup="true" aria-expanded="false">
           <span class="user-avatar" id="user-avatar">?</span>
           <span class="user-name" id="user-name">—</span>
@@ -133,6 +115,30 @@
       </div>
     </div>
   </aside>
+
+  <!-- Dropdown profil: SENGAJA ditaruh di luar <aside class="sidebar">,
+       bukan di dalamnya — supaya di mode tablet/HP (saat sidebar penuh
+       di-display:none-kan) dropdown ini tetap bisa dirender & diklik.
+       Posisinya diatur lewat CSS (position:fixed), menyesuaikan trigger
+       mana yang sedang aktif (sidebar / icon-rail / topbar mobile). -->
+  <div class="user-dropdown" id="user-dropdown" hidden>
+    <button type="button" class="user-dropdown-item" id="reset-data" title="Muat ulang data terbaru dari Spreadsheet">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 1 0 3-6.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 4v5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Muat Ulang Data</span>
+    </button>
+    <button type="button" class="user-dropdown-item" id="install-app-btn" hidden>
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Instal Aplikasi</span>
+    </button>
+    <button type="button" class="user-dropdown-item" id="notif-btn">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span id="notif-btn-label">Aktifkan Notifikasi</span>
+    </button>
+    <button type="button" class="user-dropdown-item user-dropdown-item--danger" id="logout-btn">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Keluar</span>
+    </button>
+  </div>
 
   <!-- ============ ICON-RAIL (tablet) ============ -->
   <aside class="sidebar-rail" id="sidebar-rail">
