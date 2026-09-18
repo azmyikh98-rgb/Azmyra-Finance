@@ -58,8 +58,18 @@ function doPost(e) {
 
 /* ---------------- Sheet helpers ---------------- */
 
+// Dulu setiap fungsi getXxxSheet() manggil SpreadsheetApp.getActiveSpreadsheet()
+// sendiri-sendiri — dalam satu request bisa kepanggil 5-7 kali (Pemasukan,
+// Pengeluaran, TarikTunai, KategoriPemasukan, KategoriPengeluaran, dst).
+// Sekarang di-cache sekali per eksekusi, dipakai ulang oleh semuanya.
+let _ssCache = null;
+function getSS() {
+  if (!_ssCache) _ssCache = SpreadsheetApp.getActiveSpreadsheet();
+  return _ssCache;
+}
+
 function getOrCreateSheet(name, headers) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSS();
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
@@ -70,7 +80,7 @@ function getOrCreateSheet(name, headers) {
 }
 
 function getOrCreateCategorySheet(name, defaults) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSS();
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
@@ -210,7 +220,16 @@ function handleLogin(body) {
     if (String(rows[i][0]).toLowerCase() === username.toLowerCase()) {
       if (String(rows[i][1]) === password) {
         logActivity(username, "login", "Login berhasil");
-        return respondJson({ success: true, user: { username: String(rows[i][0]), displayName: rows[i][2] ? String(rows[i][2]) : String(rows[i][0]) } });
+        // Sekalian kirim data transaksi & kategori di respons login yang
+        // sama — supaya frontend tidak perlu request kedua yang terpisah
+        // (yang tadinya bikin proses login+tampil data jadi 2x lipat lambat,
+        // karena tiap request ke Apps Script punya overhead sendiri).
+        return respondJson({
+          success: true,
+          user: { username: String(rows[i][0]), displayName: rows[i][2] ? String(rows[i][2]) : String(rows[i][0]) },
+          data: getAllTransactions(),
+          categories: getAllCategories(),
+        });
       }
       return respondJson({ success: false, error: "Password salah" });
     }

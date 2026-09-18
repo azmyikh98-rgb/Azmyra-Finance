@@ -60,6 +60,27 @@
     localStorage.removeItem(AUTH_STORAGE_KEY);
   }
 
+  // Cache data transaksi & kategori terakhir di localStorage, supaya saat
+  // app dibuka lagi, ada sesuatu yang langsung tampil ("terasa instan")
+  // sambil data terbaru masih diambil dari Spreadsheet di belakang layar
+  // — daripada layar kosong-total sampai request selesai.
+  const DATA_CACHE_KEY = "azmyra_finance_data_cache_v1";
+  function saveDataCache(txs, cats) {
+    try {
+      localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({ transactions: txs, categories: cats }));
+    } catch (e) {
+      // localStorage penuh/diblokir — abaikan, cache cuma optimisasi, bukan wajib.
+    }
+  }
+  function loadDataCache() {
+    try {
+      const raw = localStorage.getItem(DATA_CACHE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   async function loginRequest(username, password) {
     const res = await fetch(CONFIG.API_URL, {
       method: "POST",
@@ -68,7 +89,14 @@
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.error || "Login gagal");
-    return json.user;
+    // Backend sekarang menyertakan data transaksi & kategori langsung di
+    // respons login yang sama (lihat handleLogin di Code.gs) — jadi tidak
+    // perlu request kedua terpisah lagi untuk memuat data awal.
+    return {
+      user: json.user,
+      transactions: (json.data || []).map((t) => ({ ...t, date: normalizeDate(t.date) })),
+      categories: json.categories || { income: [], expense: [] },
+    };
   }
 
   /* ---------------- Koneksi ke Google Spreadsheet ---------------- */
@@ -1864,10 +1892,10 @@
     loginSubmitLabel.textContent = "Memeriksa…";
 
     try {
-      const user = await loginRequest(username, password);
-      currentUser = user;
-      saveStoredUser(user);
-      enterApp();
+      const result = await loginRequest(username, password);
+      currentUser = result.user;
+      saveStoredUser(result.user);
+      enterApp({ transactions: result.transactions, categories: result.categories });
     } catch (err) {
       loginError.textContent = err.message || "Login gagal. Coba lagi.";
       loginError.hidden = false;
@@ -1997,7 +2025,7 @@
     showToast("Notifikasi diaktifkan ✓");
   });
 
-  function enterApp() {
+  function enterApp(preloaded) {
     document.getElementById("login-screen").hidden = true;
     document.getElementById("app-shell").hidden = false;
     renderUserBadge();
@@ -2005,14 +2033,39 @@
     setFormType("income");
     document.getElementById("tx-date").value = todayISO();
     initPeriodDefaults();
-    loadAllData(false);
+
+    if (preloaded) {
+      // Datang dari form login: data sudah ikut di respons login itu
+      // sendiri, langsung dipakai — tidak perlu request tambahan sama sekali.
+      loadAllData(false, preloaded);
+    } else {
+      // Datang dari sesi tersimpan (buka app lagi tanpa login ulang): tampilkan
+      // cache terakhir dulu (kalau ada) supaya layar tidak kosong menunggu,
+      // lalu tetap ambil data terbaru dari Spreadsheet di belakang layar.
+      const cached = loadDataCache();
+      if (cached) {
+        transactions = cached.transactions;
+        CATEGORIES = cached.categories;
+        rebuildCategoryLookup();
+        populateCategories(currentType);
+        renderCategoryManageList();
+        populateYearSelect();
+        renderDashboard();
+        renderHistory();
+      }
+      loadAllData(false);
+    }
     initNotifications();
   }
 
   /* ---------------- Load data transaksi ---------------- */
-  async function loadAllData(isManualRefresh) {
+  // preloaded (opsional): { transactions, categories } yang sudah didapat
+  // dari respons login — kalau ada, tidak perlu fetch ulang (hemat 1
+  // request penuh ke Apps Script, yang masing-masing punya overhead
+  // sendiri di server sehingga terasa signifikan).
+  async function loadAllData(isManualRefresh, preloaded) {
     try {
-      const result = await fetchTransactions();
+      const result = preloaded || (await fetchTransactions());
       transactions = result.transactions;
       CATEGORIES = result.categories;
       rebuildCategoryLookup();
@@ -2021,6 +2074,7 @@
       populateYearSelect();
       renderDashboard();
       renderHistory();
+      saveDataCache(transactions, CATEGORIES);
       if (isManualRefresh) showToast("Data diperbarui ✓");
     } catch (err) {
       console.error(err);
