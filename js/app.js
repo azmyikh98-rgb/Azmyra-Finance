@@ -1036,6 +1036,44 @@
   const fieldCategory = document.getElementById("field-category");
   const fieldRowCategory = document.getElementById("field-row-category");
   const tarikTunaiHint = document.getElementById("tarik-tunai-hint");
+  const previewIcon = document.getElementById("preview-icon");
+  const previewTitle = document.getElementById("preview-title");
+  const previewDateEl = document.getElementById("preview-date");
+  const previewTypeEl = document.getElementById("preview-type");
+  const previewSourceRow = document.getElementById("preview-source-row");
+  const previewSourceLabelEl = document.getElementById("preview-source-label");
+  const previewSourceValue = document.getElementById("preview-source");
+  const previewAmountEl = document.getElementById("preview-amount");
+  const dateInput = document.getElementById("tx-date");
+
+  function renderPreview() {
+    const isTransfer = currentType === "tarik_tunai";
+    previewTypeEl.textContent =
+      currentType === "income" ? "Pemasukan" : currentType === "expense" ? "Pengeluaran" : "Tarik Tunai";
+
+    if (isTransfer) {
+      previewIcon.textContent = "🏧";
+      previewIcon.style.background = "var(--honey-light)";
+      previewTitle.textContent = "Tarik Tunai";
+      previewSourceRow.hidden = true;
+    } else {
+      const cat = CATEGORY_LOOKUP[categorySelect.value] || { label: "Pilih kategori", icon: "💼" };
+      previewIcon.textContent = cat.icon || "💼";
+      previewIcon.style.background = currentType === "income" ? "var(--fern-light)" : "var(--brick-light)";
+      previewTitle.textContent = cat.label;
+      previewSourceRow.hidden = false;
+      previewSourceLabelEl.textContent = fieldSourceLabel.textContent;
+      previewSourceValue.textContent = currentSource === "cash" ? "Cash" : "Rekening";
+    }
+
+    const rawAmount = Number(amountInput.value.replace(/\D/g, "")) || 0;
+    previewAmountEl.textContent = formatRupiah(rawAmount);
+
+    const d = parseISODate(dateInput.value);
+    previewDateEl.textContent = isNaN(d)
+      ? "—"
+      : d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  }
 
   function populateCategories(type) {
     categorySelect.innerHTML = "";
@@ -1050,6 +1088,7 @@
   function setFormSource(source) {
     currentSource = source;
     sourceSelect.value = source;
+    renderPreview();
   }
 
   function setFormType(type) {
@@ -1076,15 +1115,20 @@
 
     submitLabel.textContent =
       type === "income" ? "Simpan Pemasukan" : type === "expense" ? "Simpan Pengeluaran" : "Simpan Tarik Tunai";
+
+    renderPreview();
   }
 
   typeButtons.forEach((btn) => btn.addEventListener("click", () => setFormType(btn.dataset.type)));
   sourceSelect.addEventListener("change", () => setFormSource(sourceSelect.value));
+  categorySelect.addEventListener("change", renderPreview);
+  dateInput.addEventListener("change", renderPreview);
 
   amountInput.addEventListener("input", () => {
     const digits = amountInput.value.replace(/\D/g, "");
     amountInput.value = digits ? Number(digits).toLocaleString("id-ID") : "";
     document.getElementById("err-amount").hidden = true;
+    renderPreview();
   });
 
   txForm.addEventListener("submit", async (e) => {

@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="assets/icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -341,63 +341,82 @@
         </div>
       </div>
 
-      <div class="panel panel--form">
-        <div class="type-switch" id="tx-type-switch" role="tablist" aria-label="Jenis transaksi">
-          <button class="type-btn is-active" data-type="income" role="tab" aria-selected="true" type="button">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Pemasukan
-          </button>
-          <button class="type-btn" data-type="expense" role="tab" aria-selected="false" type="button">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Pengeluaran
-          </button>
-          <button class="type-btn" data-type="tarik_tunai" role="tab" aria-selected="false" type="button">
-            <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="13" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12.5" r="2.5" stroke="currentColor" stroke-width="2"/></svg>
-            Tarik Tunai
-          </button>
+      <div class="tambah-grid">
+        <div class="panel panel--form">
+          <div class="type-switch" id="tx-type-switch" role="tablist" aria-label="Jenis transaksi">
+            <button class="type-btn is-active" data-type="income" role="tab" aria-selected="true" type="button">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Pemasukan
+            </button>
+            <button class="type-btn" data-type="expense" role="tab" aria-selected="false" type="button">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Pengeluaran
+            </button>
+            <button class="type-btn" data-type="tarik_tunai" role="tab" aria-selected="false" type="button">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="13" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12.5" r="2.5" stroke="currentColor" stroke-width="2"/></svg>
+              Tarik Tunai
+            </button>
+          </div>
+
+          <form id="tx-form" novalidate>
+            <div class="field">
+              <label for="tx-amount">Jumlah</label>
+              <div class="amount-input">
+                <span class="amount-prefix">Rp</span>
+                <input type="text" inputmode="numeric" id="tx-amount" name="amount" placeholder="0" required autocomplete="off" />
+              </div>
+              <p class="field-error" id="err-amount" hidden>Masukkan jumlah yang valid, ya.</p>
+            </div>
+
+            <div class="field" id="field-source">
+              <label for="tx-source" id="field-source-label">Sumber Dana</label>
+              <select id="tx-source">
+                <option value="cash">💵 Cash</option>
+                <option value="rekening" selected>🏦 Rekening</option>
+              </select>
+            </div>
+
+            <div class="field-row" id="field-row-category">
+              <div class="field" id="field-category">
+                <label for="tx-category">Kategori</label>
+                <select id="tx-category" name="category" required></select>
+              </div>
+              <div class="field">
+                <label for="tx-date">Tanggal</label>
+                <input type="date" id="tx-date" name="date" required />
+              </div>
+            </div>
+
+            <p class="field-hint" id="tarik-tunai-hint" hidden>Tarik tunai memindahkan saldo dari Rekening ke Dompet Cash.</p>
+
+            <div class="field">
+              <label for="tx-note">Catatan <span class="label-optional">(opsional)</span></label>
+              <input type="text" id="tx-note" name="note" placeholder="Contoh: belanja bulanan, gaji Juli, dsb." maxlength="120" autocomplete="off" />
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--block" id="tx-submit">
+              <span id="tx-submit-label">Simpan Pemasukan</span>
+            </button>
+            <p class="form-success" id="form-success" role="status" hidden>Transaksi berhasil disimpan ✓</p>
+          </form>
         </div>
 
-        <form id="tx-form" novalidate>
-          <div class="field">
-            <label for="tx-amount">Jumlah</label>
-            <div class="amount-input">
-              <span class="amount-prefix">Rp</span>
-              <input type="text" inputmode="numeric" id="tx-amount" name="amount" placeholder="0" required autocomplete="off" />
-            </div>
-            <p class="field-error" id="err-amount" hidden>Masukkan jumlah yang valid, ya.</p>
-          </div>
-
-          <div class="field" id="field-source">
-            <label for="tx-source" id="field-source-label">Sumber Dana</label>
-            <select id="tx-source">
-              <option value="cash">💵 Cash</option>
-              <option value="rekening" selected>🏦 Rekening</option>
-            </select>
-          </div>
-
-          <div class="field-row" id="field-row-category">
-            <div class="field" id="field-category">
-              <label for="tx-category">Kategori</label>
-              <select id="tx-category" name="category" required></select>
-            </div>
-            <div class="field">
-              <label for="tx-date">Tanggal</label>
-              <input type="date" id="tx-date" name="date" required />
+        <div class="panel panel--preview">
+          <div class="preview-label">Pratinjau</div>
+          <div class="preview-head">
+            <div class="preview-icon" id="preview-icon">💼</div>
+            <div>
+              <div class="preview-title" id="preview-title">Kategori</div>
+              <div class="preview-date" id="preview-date">—</div>
             </div>
           </div>
-
-          <p class="field-hint" id="tarik-tunai-hint" hidden>Tarik tunai memindahkan saldo dari Rekening ke Dompet Cash.</p>
-
-          <div class="field">
-            <label for="tx-note">Catatan <span class="label-optional">(opsional)</span></label>
-            <input type="text" id="tx-note" name="note" placeholder="Contoh: belanja bulanan, gaji Juli, dsb." maxlength="120" autocomplete="off" />
+          <div class="preview-rows">
+            <div class="preview-row"><span>Jenis</span><span id="preview-type">Pemasukan</span></div>
+            <div class="preview-row" id="preview-source-row"><span id="preview-source-label">Sumber Dana</span><span id="preview-source">Rekening</span></div>
+            <div class="preview-row"><span>Jumlah</span><span id="preview-amount">Rp 0</span></div>
           </div>
-
-          <button type="submit" class="btn btn--primary btn--block" id="tx-submit">
-            <span id="tx-submit-label">Simpan Pemasukan</span>
-          </button>
-          <p class="form-success" id="form-success" role="status" hidden>Transaksi berhasil disimpan ✓</p>
-        </form>
+          <div class="preview-tip">💡 Pratinjau ini ikut berubah begitu kamu ganti jenis, kategori, jumlah, atau tanggal transaksi.</div>
+        </div>
       </div>
     </section>
 
