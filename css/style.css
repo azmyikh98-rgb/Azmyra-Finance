@@ -229,7 +229,7 @@ img, svg{ display: block; }
 .stat-card-value{ font-family:'Newsreader', serif; font-size:25px; font-weight:600; color: var(--pine); font-variant-numeric: tabular-nums; }
 #rep-net-card.is-surplus .stat-card-value{ color: var(--fern-dk); }
 #rep-net-card.is-defisit .stat-card-value{ color: var(--brick); }
-@media (max-width:860px){ .stat-row{ grid-template-columns:1fr; } }
+@media (max-width:860px){ .stat-row:not(.stat-row--wallet){ grid-template-columns:1fr; } }
 
 .health-badge{
   display:inline-block; padding:8px 16px; border-radius:999px;
@@ -824,6 +824,13 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
   .bottom-nav{ display:grid; }
   .main{ padding: 20px 18px calc(48px + 76px); }
   .user-dropdown{ position:fixed; top:62px; left:auto; right:16px; bottom:auto; width:230px; }
+
+  /* Pemasukan/Pengeluaran di kartu saldo dipaksa tetap satu baris
+     (kanan-kiri), bukan ditumpuk — gap & fontnya diperkecil lagi
+     khusus di lebar HP supaya selalu muat berdampingan. */
+  .hero-split{ flex-wrap:nowrap; gap:10px; }
+  .hero-split-item{ flex:1; min-width:0; font-size:11px; gap:6px; }
+  .hero-split-item span:last-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 }
 @media (max-width: 1024px) and (min-width: 641px){
   .user-dropdown{ position:fixed; bottom:20px; left:84px; right:auto; width:230px; }
