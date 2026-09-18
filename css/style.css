@@ -364,6 +364,7 @@ img, svg{ display: block; }
 
 /* ---------------- Form (Tambah) ---------------- */
 .tambah-grid{ display:grid; grid-template-columns:1fr 380px; gap:var(--stack-gap); align-items:start; }
+.tambah-grid > .panel{ margin-bottom:0; }
 @media (max-width: 980px){ .tambah-grid{ grid-template-columns:1fr; } }
 .panel--form{ max-width:none; }
 .panel--preview{ position:sticky; top:20px; }
@@ -603,7 +604,15 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
 
 /* ---------------- Period filter (dashboard) ---------------- */
 .period-panel{ padding-bottom: 24px; }
-.period-bar{ display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin:0; }
+/* #period-panel dipindah-pindah (appendChild) antar #dashboard-period-slot
+   dan #laporan-period-slot oleh movePeriodPanel() di app.js — begitu
+   pindah, dia jadi "anak terakhir" dari slot itu, lalu kena aturan
+   .panel:last-child{margin-bottom:0} secara tidak sengaja (persis pola
+   bug yang sama seperti di .stat-row dan .grid-2). Dikunci lewat ID
+   (spesifisitas lebih tinggi dari .panel:last-child) supaya jaraknya ke
+   elemen berikutnya selalu konsisten di halaman manapun dia berada. */
+#period-panel{ margin-bottom: var(--stack-gap); }
+.period-bar{ display:flex; align-items:flex-end; gap: var(--stack-gap); flex-wrap:wrap; margin:0; }
 .period-field{ display:flex; flex-direction:column; gap:7px; min-width:170px; }
 
 .field-icon{ width:17px; height:17px; color: var(--moss); flex-shrink:0; }
