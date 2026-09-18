@@ -600,7 +600,7 @@
   function goToRoute(route) {
     document.querySelectorAll(".page").forEach((p) => p.classList.remove("is-active"));
     document.getElementById(`page-${route}`).classList.add("is-active");
-    document.querySelectorAll(".nav-item[data-route]").forEach((btn) => {
+    document.querySelectorAll(".nav-item[data-route], .bottomnav-item[data-route]").forEach((btn) => {
       btn.classList.toggle("is-active", btn.dataset.route === route);
     });
     closeSidebar();
@@ -631,25 +631,12 @@
     el.addEventListener("click", () => goToRoute(el.dataset.route));
   });
 
-  /* ---------------- Mobile sidebar ---------------- */
-  const sidebar = document.getElementById("sidebar");
-  const scrim = document.getElementById("sidebar-scrim");
-  const menuToggle = document.getElementById("menu-toggle");
-
-  function openSidebar() {
-    sidebar.classList.add("is-open");
-    scrim.classList.add("is-visible");
-    menuToggle.setAttribute("aria-expanded", "true");
-  }
-  function closeSidebar() {
-    sidebar.classList.remove("is-open");
-    scrim.classList.remove("is-visible");
-    menuToggle.setAttribute("aria-expanded", "false");
-  }
-  menuToggle.addEventListener("click", () => {
-    sidebar.classList.contains("is-open") ? closeSidebar() : openSidebar();
-  });
-  scrim.addEventListener("click", closeSidebar);
+  /* ---------------- Sidebar ----------------
+     Sidebar penuh (desktop), icon-rail (tablet), dan bottom-nav (mobile)
+     kini semua SELALU tampil sesuai ukuran layar via CSS — bukan drawer
+     yang dibuka-tutup lagi, jadi tidak perlu logika toggle. Fungsi ini
+     dibiarkan ada (no-op) karena masih dipanggil dari goToRoute(). */
+  function closeSidebar() {}
 
   /* ---------------- Greeting + date ---------------- */
   function renderGreeting() {
@@ -667,8 +654,11 @@
 
   function renderUserBadge() {
     if (!currentUser) return;
+    const initial = currentUser.displayName.slice(0, 1);
     document.getElementById("user-name").textContent = currentUser.displayName;
-    document.getElementById("user-avatar").textContent = currentUser.displayName.slice(0, 1);
+    document.getElementById("user-avatar").textContent = initial;
+    document.getElementById("user-avatar-rail").textContent = initial;
+    document.getElementById("user-avatar-mobile").textContent = initial;
   }
 
   /* ---------------- Dashboard: saldo & ringkasan (selalu total keseluruhan) ---------------- */
@@ -1773,19 +1763,29 @@
   const userBadgeBtn = document.getElementById("user-badge");
   const userDropdown = document.getElementById("user-dropdown");
 
+  // Tiga tombol pemicu berbeda (sidebar penuh, icon-rail tablet, topbar
+  // mobile) — tampil bergantian sesuai ukuran layar, tapi semuanya
+  // membuka panel dropdown yang SAMA (posisinya diatur lewat CSS per
+  // breakpoint), supaya tidak perlu menduplikasi isi menu tiga kali.
+  const userBadgeTriggers = [userBadgeBtn, document.getElementById("user-badge-rail"), document.getElementById("user-badge-mobile")];
+
   function openUserDropdown() {
     userDropdown.hidden = false;
-    userBadgeBtn.setAttribute("aria-expanded", "true");
+    userBadgeTriggers.forEach((btn) => btn.setAttribute("aria-expanded", "true"));
   }
   function closeUserDropdown() {
     userDropdown.hidden = true;
-    userBadgeBtn.setAttribute("aria-expanded", "false");
+    userBadgeTriggers.forEach((btn) => btn.setAttribute("aria-expanded", "false"));
   }
-  userBadgeBtn.addEventListener("click", () => {
-    userDropdown.hidden ? openUserDropdown() : closeUserDropdown();
+  userBadgeTriggers.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      userDropdown.hidden ? openUserDropdown() : closeUserDropdown();
+    });
   });
   document.addEventListener("click", (e) => {
-    if (!userDropdown.hidden && !e.target.closest(".user-menu-wrap")) closeUserDropdown();
+    if (userDropdown.hidden) return;
+    if (e.target.closest(".user-menu-wrap") || e.target.closest(".user-badge-alt")) return;
+    closeUserDropdown();
   });
 
   /* ---------------- PWA: Install Aplikasi ---------------- */

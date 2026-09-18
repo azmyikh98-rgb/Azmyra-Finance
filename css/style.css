@@ -112,20 +112,60 @@ img, svg{ display: block; }
 .nav-item--ghost{ color:#B7C4B3; font-weight:500; }
 .nav-item--ghost:hover{ color:#fff; background: rgba(255,255,255,0.06); }
 
+/* ---------------- Icon-rail (tablet) ---------------- */
+.sidebar-rail{
+  display:none;
+  width:76px; flex-shrink:0;
+  background: linear-gradient(180deg, var(--pine-dk) 0%, #12201A 100%);
+  padding:24px 0;
+  flex-direction:column; align-items:center; gap:26px;
+  position: sticky; top:0; height:100vh; height:100dvh;
+}
+.rail-mark{ width:34px; height:34px; flex-shrink:0; }
+.rail-mark svg{ width:100%; height:100%; }
+.rail-nav{ display:flex; flex-direction:column; gap:6px; }
+.rail-item{ width:44px; height:44px; padding:0; justify-content:center; border-radius:11px; }
+.rail-item span{ display:none; }
+.rail-avatar{
+  margin-top:auto; background:none; border:none; cursor:pointer; padding:0;
+  width:36px; height:36px; border-radius:50%;
+}
+
 /* ---------------- Topbar (mobile) ---------------- */
 .topbar{
   display:none;
-  align-items:center; gap:14px;
+  align-items:center; justify-content:space-between;
   padding: 14px 18px;
   background: var(--pine-dk);
   color:#fff;
   position: sticky; top:0; z-index: 30;
   min-width: 0;
 }
-.topbar-title{ font-family:'Newsreader', serif; font-weight:600; font-size:17px; }
-.icon-btn{ background:none; border:none; color:#fff; padding:6px; cursor:pointer; border-radius:8px; }
-.icon-btn svg{ width:22px; height:22px; }
-.sidebar-scrim{ display:none; }
+.topbar-brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+.rail-mark--sm{ width:28px; height:28px; }
+.topbar-title{ font-family:'Newsreader', serif; font-weight:600; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.topbar-avatar{ background:none; border:none; cursor:pointer; padding:0; width:32px; height:32px; border-radius:50%; flex-shrink:0; }
+
+/* ---------------- Bottom nav (mobile) ---------------- */
+.bottom-nav{
+  display:none;
+  position:fixed; left:0; right:0; bottom:0; z-index:30;
+  height:76px; background:#fff; border-top:1px solid var(--line);
+  grid-template-columns:1fr 1fr 56px 1fr 1fr; align-items:center; padding:0 8px;
+}
+.bottomnav-item{
+  background:none; border:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  color: var(--ink-3); font-size:10.5px; font-weight:600; padding:6px 0;
+}
+.bottomnav-item svg{ width:19px; height:19px; }
+.bottomnav-item.is-active{ color: var(--pine); }
+.bottomnav-fab{
+  width:48px; height:48px; border-radius:50%; background: var(--pine);
+  border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  justify-self:center; box-shadow: var(--shadow-md);
+}
+.bottomnav-fab svg{ width:20px; height:20px; }
 
 /* ---------------- Main ---------------- */
 .main{ padding: 36px 44px 60px; max-width: 1120px; width:100%; min-width: 0; }
@@ -747,20 +787,28 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
 }
 .toast.is-visible{ transform: translateX(-50%) translateY(0); }
 
-/* ---------------- Responsive ---------------- */
-@media (max-width: 980px){
+/* ---------------- Responsive ----------------
+   3 tingkat, sama seperti pola di prototipe redesain:
+   - Desktop (>1024px): sidebar penuh
+   - Tablet (641–1024px): icon-rail, selalu terlihat (bukan drawer)
+   - Mobile (<=640px): tanpa sidebar sama sekali — topbar + bottom-nav
+   ------------------------------------------------ */
+@media (max-width: 1024px){
+  .app-shell{ grid-template-columns: 76px minmax(0, 1fr); }
+  .sidebar{ display:none; }
+  .sidebar-rail{ display:flex; }
+  .main{ padding: 28px 28px 48px; }
+}
+@media (max-width: 640px){
   .app-shell{ grid-template-columns: minmax(0, 1fr); }
-  .sidebar{
-    position:fixed; left:0; top:0; z-index:50; width: min(80vw, 300px); height:100vh; height:100dvh;
-    transform: translateX(-100%); transition: transform .25s ease;
-  }
-  .sidebar.is-open{ transform:none; }
+  .sidebar-rail{ display:none; }
   .topbar{ display:flex; }
-  .sidebar-scrim{
-    display:none; position:fixed; inset:0; background: rgba(20,28,20,0.45); z-index:40;
-  }
-  .sidebar-scrim.is-visible{ display:block; }
-  .main{ padding: 24px 18px 48px; }
+  .bottom-nav{ display:grid; }
+  .main{ padding: 20px 18px calc(48px + 76px); }
+  .user-dropdown{ position:fixed; top:62px; left:auto; right:16px; bottom:auto; width:230px; }
+}
+@media (max-width: 1024px) and (min-width: 641px){
+  .user-dropdown{ position:fixed; bottom:20px; left:84px; right:auto; width:230px; }
 }
 @media (max-width: 560px){
   .field-row{ grid-template-columns:1fr; }
