@@ -222,11 +222,11 @@ img, svg{ display: block; }
   padding: 12px 18px; margin-bottom: var(--stack-gap); font-size:13.5px; font-weight:700; color: var(--fern-dk);
 }
 
-.stat-row{ display:grid; grid-template-columns:repeat(3, 1fr); gap: var(--stack-gap); margin-bottom: var(--stack-gap); }
+.stat-row{ display:grid; grid-template-columns:repeat(3, 1fr); gap: var(--stack-gap); margin-bottom: var(--stack-gap); align-items:stretch; }
 .stat-row--wallet{ grid-template-columns:repeat(2, 1fr); }
 .stat-card{ display:flex; flex-direction:column; gap:6px; min-width:0; width:100%; }
 .stat-card-label{ font-size:12.5px; font-weight:700; color: var(--moss); text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.stat-card-value{ font-family:'Newsreader', serif; font-size:25px; font-weight:600; color: var(--pine); font-variant-numeric: tabular-nums; }
+.stat-card-value{ font-family:'Newsreader', serif; font-size:25px; font-weight:600; color: var(--pine); font-variant-numeric: tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #rep-net-card.is-surplus .stat-card-value{ color: var(--fern-dk); }
 #rep-net-card.is-defisit .stat-card-value{ color: var(--brick); }
 @media (max-width:860px){ .stat-row:not(.stat-row--wallet){ grid-template-columns:1fr; } }
@@ -831,6 +831,11 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
   .hero-split{ flex-wrap:nowrap; gap:10px; }
   .hero-split-item{ flex:1; min-width:0; font-size:11px; gap:6px; }
   .hero-split-item span:last-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* Angka di kartu Cash/Rekening dikecilkan lagi khusus di HP, supaya ada
+     ruang lega dan tidak mepet ke titik hampir wrap (itu yang sebelumnya
+     bikin tinggi 2 kartu ini beda — satu wrap ke 2 baris, satu tidak). */
+  .stat-card-value{ font-size:17px; }
 }
 @media (max-width: 1024px) and (min-width: 641px){
   .user-dropdown{ position:fixed; bottom:20px; left:84px; right:auto; width:230px; }
