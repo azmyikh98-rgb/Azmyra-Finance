@@ -237,7 +237,12 @@ img, svg{ display: block; }
 .stat-card-value{ font-family:'Newsreader', serif; font-size:25px; font-weight:600; color: var(--pine); font-variant-numeric: tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #rep-net-card.is-surplus .stat-card-value{ color: var(--fern-dk); }
 #rep-net-card.is-defisit .stat-card-value{ color: var(--brick); }
-@media (max-width:860px){ .stat-row:not(.stat-row--wallet){ grid-template-columns:1fr; } }
+@media (max-width:860px){
+  .stat-row:not(.stat-row--wallet){ grid-template-columns:repeat(2, 1fr); }
+  /* Item ke-3 (Selisih) melebar penuh 1 baris sendiri di bawah, supaya
+     tidak menyisakan 1 sel kosong ganjil di baris kedua. */
+  .stat-row:not(.stat-row--wallet) > :nth-child(3){ grid-column: 1 / -1; }
+}
 
 .health-badge{
   display:inline-block; padding:8px 16px; border-radius:999px;
