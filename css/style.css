@@ -224,6 +224,14 @@ img, svg{ display: block; }
 
 .stat-row{ display:grid; grid-template-columns:repeat(3, 1fr); gap: var(--stack-gap); margin-bottom: var(--stack-gap); align-items:stretch; }
 .stat-row--wallet{ grid-template-columns:repeat(2, 1fr); }
+/* .panel:last-child{margin-bottom:0} (dibuat untuk panel yang ditumpuk
+   vertikal) tanpa sengaja ikut kena ke kartu paling KANAN di baris ini
+   juga (karena secara DOM dia "anak terakhir") — itu bikin marginnya beda
+   sendiri dari kartu-kartu lain, dan karena align-items:stretch menghitung
+   tinggi = tinggi baris dikurangi margin masing-masing, hasilnya jadi
+   beda tinggi. Disamakan paksa di sini (0 untuk semua, row sudah punya
+   margin sendiri lewat .stat-row) dengan spesifisitas yang menang.       */
+.stat-row .stat-card{ margin-bottom:0; }
 .stat-card{ display:flex; flex-direction:column; gap:6px; min-width:0; width:100%; }
 .stat-card-label{ font-size:12.5px; font-weight:700; color: var(--moss); text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .stat-card-value{ font-family:'Newsreader', serif; font-size:25px; font-weight:600; color: var(--pine); font-variant-numeric: tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -260,7 +268,7 @@ img, svg{ display: block; }
 .trend-label{ margin-top:8px; font-size:11px; color: var(--ink-3); text-align:center; white-space:nowrap; }
 
 .grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap: var(--stack-gap); margin-bottom: var(--stack-gap); align-items:stretch; }
-.grid-2 .panel{ min-height: 340px; min-width:0; }
+.grid-2 .panel{ min-height: 340px; min-width:0; margin-bottom:0; }
 @media (max-width: 860px){ .grid-2{ grid-template-columns: 1fr; } .grid-2 .panel{ min-height:0; } }
 
 .panel{
