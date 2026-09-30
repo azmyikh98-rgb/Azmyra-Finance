@@ -700,6 +700,29 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="tx-detail-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Detail Transaksi</h2>
+      <button type="button" class="modal-close-btn" id="tx-detail-modal-close" aria-label="Tutup">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="tx-detail-head">
+      <div class="tx-detail-icon" id="tx-detail-icon"></div>
+      <div class="tx-detail-headtext">
+        <div class="tx-detail-title" id="tx-detail-title"></div>
+        <div class="tx-detail-amount" id="tx-detail-amount"></div>
+      </div>
+    </div>
+    <div class="tx-detail-rows" id="tx-detail-rows"></div>
+    <div class="tx-detail-actions">
+      <button type="button" class="btn btn--ghost" id="tx-detail-delete-btn">Hapus</button>
+      <button type="button" class="btn btn--primary" id="tx-detail-edit-btn">Edit Transaksi</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="edit-tx-modal" hidden>
   <div class="modal-card">
     <div class="modal-head">

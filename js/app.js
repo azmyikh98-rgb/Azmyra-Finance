@@ -1018,6 +1018,13 @@
         ? { label: "Tarik Tunai", icon: "🏧" }
         : CATEGORY_LOOKUP[t.category] || { label: t.category, icon: "•" };
     const sign = t.type === "income" ? "+" : t.type === "expense" ? "−" : "⇄";
+    const isTransfer = t.type === "tarik_tunai";
+    const sourceBadge =
+      !isTransfer
+        ? `<span class="tx-source-badge tx-source-badge--${t.source === "cash" ? "cash" : "rekening"}">${
+            t.source === "cash" ? "💵 Cash" : "🏦 Rekening"
+          }</span>`
+        : "";
     const li = document.createElement("li");
     li.innerHTML = `
       <div class="tx-left">
@@ -1025,6 +1032,7 @@
         <div class="tx-meta">
           <div class="tx-cat">${escapeHtml(cat.label)}</div>
           <div class="tx-note">${escapeHtml(t.note || "Tanpa catatan")}</div>
+          ${sourceBadge}
         </div>
       </div>
       <div class="tx-right">
@@ -1586,6 +1594,10 @@
 
     dayTx.forEach((t) => {
       const li = renderTxListItem(t);
+      li.classList.add("tx-clickable");
+      li.tabIndex = 0;
+      li.setAttribute("role", "button");
+      li.setAttribute("aria-label", "Lihat detail transaksi");
       const actions = document.createElement("div");
       actions.className = "tx-actions";
       actions.innerHTML = `
@@ -1597,48 +1609,72 @@
         </button>
       `;
       li.appendChild(actions);
+      // Klik baris (di luar tombol edit/hapus) membuka detail transaksi,
+      // bukan langsung ke form edit.
+      li.addEventListener("click", (e) => {
+        if (e.target.closest(".tx-actions")) return;
+        openTxDetailModal(t);
+      });
+      li.addEventListener("keydown", (e) => {
+        if ((e.key === "Enter" || e.key === " ") && !e.target.closest(".tx-actions")) {
+          e.preventDefault();
+          openTxDetailModal(t);
+        }
+      });
       dayTxList.appendChild(li);
     });
 
     dayTxList.querySelectorAll(".row-edit").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         const tx = transactions.find((t) => t.id === btn.dataset.id);
         if (tx) { closeDayTxModal(); openEditTxModal(tx); }
       });
     });
 
     dayTxList.querySelectorAll(".row-delete").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.id;
-        const type = btn.dataset.type;
-        const tx = transactions.find((t) => t.id === id);
-        const cat = tx
-          ? tx.type === "tarik_tunai"
-            ? { label: "Tarik Tunai" }
-            : CATEGORY_LOOKUP[tx.category] || { label: tx.category }
-          : { label: "" };
-        const ok = await askConfirm(
-          "Hapus Transaksi",
-          `Yakin ingin menghapus transaksi ${cat.label}${tx ? " sebesar " + formatRupiah(tx.amount) : ""}? Tindakan ini tidak bisa dibatalkan.`,
-          "Ya, Hapus",
-          true
-        );
-        if (!ok) return;
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
         btn.disabled = true;
-        try {
-          await deleteTransactionRemote(id, type);
-          transactions = transactions.filter((t) => t.id !== id);
-          renderDayTxModalContent();
-          renderHistory();
-          renderDashboard();
-          showToast("Transaksi dihapus");
-        } catch (err) {
-          console.error(err);
-          showToast("Gagal menghapus. Coba lagi.");
-          btn.disabled = false;
-        }
+        const done = await deleteTxWithConfirm(btn.dataset.id, btn.dataset.type, {
+          afterDelete: () => {
+            renderDayTxModalContent();
+            renderHistory();
+            renderDashboard();
+          },
+        });
+        if (!done) btn.disabled = false;
       });
     });
+  }
+
+  // Hapus transaksi dengan konfirmasi — dipakai bareng oleh tombol hapus
+  // di list modal per-tanggal dan tombol hapus di modal detail transaksi.
+  async function deleteTxWithConfirm(id, type, { afterDelete } = {}) {
+    const tx = transactions.find((t) => t.id === id);
+    const cat = tx
+      ? tx.type === "tarik_tunai"
+        ? { label: "Tarik Tunai" }
+        : CATEGORY_LOOKUP[tx.category] || { label: tx.category }
+      : { label: "" };
+    const ok = await askConfirm(
+      "Hapus Transaksi",
+      `Yakin ingin menghapus transaksi ${cat.label}${tx ? " sebesar " + formatRupiah(tx.amount) : ""}? Tindakan ini tidak bisa dibatalkan.`,
+      "Ya, Hapus",
+      true
+    );
+    if (!ok) return false;
+    try {
+      await deleteTransactionRemote(id, type);
+      transactions = transactions.filter((t) => t.id !== id);
+      showToast("Transaksi dihapus");
+      if (afterDelete) afterDelete();
+      return true;
+    } catch (err) {
+      console.error(err);
+      showToast("Gagal menghapus. Coba lagi.");
+      return false;
+    }
   }
 
   function openDayTxModal(iso) {
@@ -1659,6 +1695,77 @@
     goToRoute("tambah");
     const dateInput = document.getElementById("tx-date");
     if (dateInput) dateInput.value = iso;
+  });
+
+  /* ---------------- Modal Detail Transaksi ---------------- */
+  const txDetailModal = document.getElementById("tx-detail-modal");
+  const txDetailModalClose = document.getElementById("tx-detail-modal-close");
+  const txDetailIcon = document.getElementById("tx-detail-icon");
+  const txDetailTitle = document.getElementById("tx-detail-title");
+  const txDetailAmount = document.getElementById("tx-detail-amount");
+  const txDetailRows = document.getElementById("tx-detail-rows");
+  const txDetailEditBtn = document.getElementById("tx-detail-edit-btn");
+  const txDetailDeleteBtn = document.getElementById("tx-detail-delete-btn");
+  let detailTx = null;
+
+  function detailRow(label, value) {
+    return `<div class="tx-detail-row"><span class="tx-detail-label">${escapeHtml(label)}</span><span class="tx-detail-value">${value}</span></div>`;
+  }
+
+  function openTxDetailModal(t) {
+    detailTx = t;
+    const isTransfer = t.type === "tarik_tunai";
+    const cat = isTransfer ? { label: "Tarik Tunai", icon: "🏧" } : CATEGORY_LOOKUP[t.category] || { label: t.category, icon: "•" };
+    const sign = t.type === "income" ? "+" : t.type === "expense" ? "−" : "⇄";
+    const dateLabel = parseISODate(t.date).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const typeLabel = t.type === "income" ? "Pemasukan" : t.type === "expense" ? "Pengeluaran" : "Tarik Tunai";
+    const sourceLabel = t.type === "income" ? "Simpan Ke" : "Sumber Dana";
+
+    txDetailIcon.className = `tx-detail-icon ${t.type}`;
+    txDetailIcon.textContent = cat.icon;
+    txDetailTitle.textContent = cat.label;
+    txDetailAmount.className = `tx-detail-amount ${t.type}`;
+    txDetailAmount.textContent = `${sign} ${formatRupiah(t.amount)}`;
+
+    let rows = "";
+    rows += detailRow("Jenis", escapeHtml(typeLabel));
+    if (!isTransfer) {
+      rows += detailRow(sourceLabel, t.source === "cash" ? "💵 Cash" : "🏦 Rekening");
+    }
+    rows += detailRow("Tanggal", escapeHtml(dateLabel));
+    rows += detailRow("Catatan", escapeHtml(t.note || "Tanpa catatan"));
+    txDetailRows.innerHTML = rows;
+
+    txDetailModal.hidden = false;
+  }
+  function closeTxDetailModal() {
+    txDetailModal.hidden = true;
+    detailTx = null;
+  }
+  txDetailModalClose.addEventListener("click", closeTxDetailModal);
+  txDetailModal.addEventListener("click", (e) => { if (e.target === txDetailModal) closeTxDetailModal(); });
+
+  txDetailEditBtn.addEventListener("click", () => {
+    if (!detailTx) return;
+    const tx = detailTx;
+    closeTxDetailModal();
+    closeDayTxModal();
+    openEditTxModal(tx);
+  });
+
+  txDetailDeleteBtn.addEventListener("click", async () => {
+    if (!detailTx) return;
+    const { id, type } = detailTx;
+    txDetailDeleteBtn.disabled = true;
+    const done = await deleteTxWithConfirm(id, type, {
+      afterDelete: () => {
+        closeTxDetailModal();
+        renderDayTxModalContent();
+        renderHistory();
+        renderDashboard();
+      },
+    });
+    if (!done) txDetailDeleteBtn.disabled = false;
   });
 
   /* ---------------- Modal Edit Transaksi ---------------- */
