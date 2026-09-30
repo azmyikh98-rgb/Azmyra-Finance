@@ -267,81 +267,27 @@
       <div class="panel period-panel" id="period-panel">
         <div class="panel-head">
           <h2>Lihat Periode</h2>
-          <p class="panel-sub">Pilih periode, lalu klik Terapkan untuk melihat arus kas, kategori, dan transaksi di bawah</p>
+          <p class="panel-sub">Pilih rentang tanggal, lalu klik Terapkan untuk melihat arus kas, kategori, dan transaksi di bawah</p>
+        </div>
+        <div class="period-presets" id="period-presets">
+          <button type="button" class="period-preset-chip" data-preset="today">Hari Ini</button>
+          <button type="button" class="period-preset-chip" data-preset="week">Minggu Ini</button>
+          <button type="button" class="period-preset-chip" data-preset="month">Bulan Ini</button>
+          <button type="button" class="period-preset-chip" data-preset="year">Tahun Ini</button>
         </div>
         <form class="period-bar" id="period-form">
           <div class="period-field">
-            <label for="period-type-select">Periode</label>
-            <select id="period-type-select" class="period-input">
-              <option value="daily">Harian</option>
-              <option value="weekly">Mingguan</option>
-              <option value="monthly">Bulanan</option>
-              <option value="yearly">Tahunan</option>
-            </select>
-          </div>
-
-          <div class="period-field" id="field-daily">
-            <label id="day-calendar-label">Pilih Tanggal</label>
-            <div class="week-picker-wrap">
-              <button type="button" class="period-input week-trigger" id="day-trigger" aria-haspopup="true" aria-expanded="false">
-                <svg class="field-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-                <span id="day-trigger-label">Pilih tanggal…</span>
-              </button>
-              <div class="week-calendar" id="day-calendar" hidden role="group" aria-labelledby="day-calendar-label">
-                <div class="week-calendar-nav">
-                  <div class="week-nav-selects">
-                    <select id="day-month-select" class="week-nav-select" aria-label="Pilih bulan"></select>
-                    <select id="day-year-select" class="week-nav-select" aria-label="Pilih tahun"></select>
-                  </div>
-                </div>
-                <div class="week-calendar-grid" id="day-calendar-grid"></div>
-              </div>
-            </div>
-          </div>
-          <div class="period-field" id="field-weekly" hidden>
-            <label id="week-calendar-label">Pilih Minggu</label>
-            <div class="week-picker-wrap">
-              <button type="button" class="period-input week-trigger" id="week-trigger" aria-haspopup="true" aria-expanded="false">
-                <svg class="field-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-                <span id="week-trigger-label">Pilih minggu…</span>
-              </button>
-              <div class="week-calendar" id="week-calendar" hidden role="group" aria-labelledby="week-calendar-label">
-                <div class="week-calendar-nav">
-                  <div class="week-nav-selects">
-                    <select id="week-month-select" class="week-nav-select" aria-label="Pilih bulan"></select>
-                    <select id="week-year-select" class="week-nav-select" aria-label="Pilih tahun"></select>
-                  </div>
-                </div>
-                <div class="week-calendar-grid" id="week-calendar-grid"></div>
-              </div>
-            </div>
-          </div>
-          <div class="period-field" id="field-monthly" hidden>
-            <label id="month-picker-label">Pilih Bulan</label>
-            <div class="week-picker-wrap">
-              <button type="button" class="period-input week-trigger" id="month-trigger" aria-haspopup="true" aria-expanded="false">
-                <svg class="field-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-                <span id="month-trigger-label">Pilih bulan…</span>
-              </button>
-              <div class="week-calendar" id="month-calendar" hidden role="group" aria-labelledby="month-picker-label">
-                <div class="week-calendar-nav">
-                  <button type="button" class="week-nav-btn" id="month-prev-year" aria-label="Tahun sebelumnya">
-                    <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </button>
-                  <span class="week-picker-month" id="month-picker-year-label">—</span>
-                  <button type="button" class="week-nav-btn" id="month-next-year" aria-label="Tahun berikutnya">
-                    <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </button>
-                </div>
-                <div class="month-grid" id="month-grid"></div>
-              </div>
-            </div>
-          </div>
-          <div class="period-field" id="field-yearly" hidden>
-            <label for="period-yearly">Pilih Tahun</label>
+            <label for="range-start-input">Dari Tanggal</label>
             <div class="field-icon-input">
               <svg class="field-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-              <select id="period-yearly" class="period-input"></select>
+              <input type="date" id="range-start-input" class="period-input" required />
+            </div>
+          </div>
+          <div class="period-field">
+            <label for="range-end-input">Sampai Tanggal</label>
+            <div class="field-icon-input">
+              <svg class="field-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <input type="date" id="range-end-input" class="period-input" required />
             </div>
           </div>
 
