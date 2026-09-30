@@ -1328,17 +1328,16 @@
       list = list.filter((cat) => cat.label.toLowerCase().includes(catSearchTerm));
     }
     catListSub.textContent = categoryManageType === "income" ? "Kategori Pemasukan" : "Kategori Pengeluaran";
-    const tableWrap = document.querySelector("#page-kategori .table-wrap");
     const paginationEl = document.getElementById("cat-pagination");
     catManageList.innerHTML = "";
     if (list.length === 0) {
-      tableWrap.style.display = "none";
+      catManageList.hidden = true;
       catManageEmpty.hidden = false;
       catManageEmpty.textContent = catSearchTerm ? "Tidak ada kategori yang cocok dengan pencarianmu." : "Belum ada kategori.";
       paginationEl.hidden = true;
       return;
     }
-    tableWrap.style.display = "";
+    catManageList.hidden = false;
     catManageEmpty.hidden = true;
 
     const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
@@ -1355,17 +1354,20 @@
 
   function buildCategoryRow(cat) {
     const type = categoryManageType;
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td data-label="Kategori">
-        <span class="cat-view-icon">${escapeHtml(cat.icon)}</span>
-        <span class="cat-view-label">${escapeHtml(cat.label)}</span>
+    const li = document.createElement("li");
+    li.className = "cat-row";
+    li.innerHTML = `
+      <div class="tx-left">
+        <div class="tx-icon ${type} cat-view-icon">${escapeHtml(cat.icon)}</div>
+        <div class="tx-meta">
+          <div class="cat-view-label">${escapeHtml(cat.label)}</div>
+        </div>
         <span class="cat-edit-fields" hidden>
-          <input type="text" class="cat-manage-input cat-edit-icon" maxlength="4" />
-          <input type="text" class="cat-manage-input cat-edit-label" />
+          <input type="text" class="cat-manage-input cat-edit-icon" maxlength="4" aria-label="Ikon kategori" />
+          <input type="text" class="cat-manage-input cat-edit-label" aria-label="Nama kategori" />
         </span>
-      </td>
-      <td class="align-right" data-label="Aksi">
+      </div>
+      <div class="tx-actions">
         <span class="cat-actions" data-mode="view">
           <button type="button" class="icon-btn-sm cat-edit-btn" title="Edit kategori">
             <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1382,16 +1384,16 @@
             <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           </button>
         </span>
-      </td>
+      </div>
     `;
 
-    const viewIcon = tr.querySelector(".cat-view-icon");
-    const viewLabel = tr.querySelector(".cat-view-label");
-    const editFields = tr.querySelector(".cat-edit-fields");
-    const editIconInput = tr.querySelector(".cat-edit-icon");
-    const editLabelInput = tr.querySelector(".cat-edit-label");
-    const viewActions = tr.querySelector('.cat-actions[data-mode="view"]');
-    const editActions = tr.querySelector('.cat-actions[data-mode="edit"]');
+    const viewIcon = li.querySelector(".cat-view-icon");
+    const viewLabel = li.querySelector(".cat-view-label");
+    const editFields = li.querySelector(".cat-edit-fields");
+    const editIconInput = li.querySelector(".cat-edit-icon");
+    const editLabelInput = li.querySelector(".cat-edit-label");
+    const viewActions = li.querySelector('.cat-actions[data-mode="view"]');
+    const editActions = li.querySelector('.cat-actions[data-mode="edit"]');
 
     function enterEditMode() {
       editIconInput.value = cat.icon;
@@ -1412,10 +1414,10 @@
       editActions.hidden = true;
     }
 
-    tr.querySelector(".cat-edit-btn").addEventListener("click", enterEditMode);
-    tr.querySelector(".cat-cancel-btn").addEventListener("click", exitEditMode);
+    li.querySelector(".cat-edit-btn").addEventListener("click", enterEditMode);
+    li.querySelector(".cat-cancel-btn").addEventListener("click", exitEditMode);
 
-    tr.querySelector(".cat-save-btn").addEventListener("click", async () => {
+    li.querySelector(".cat-save-btn").addEventListener("click", async () => {
       const newLabel = editLabelInput.value.trim();
       const newIcon = editIconInput.value.trim() || "🏷";
       if (!newLabel) { showToast("Nama kategori tidak boleh kosong."); return; }
@@ -1439,7 +1441,7 @@
       }
     });
 
-    tr.querySelector(".cat-delete-btn").addEventListener("click", async () => {
+    li.querySelector(".cat-delete-btn").addEventListener("click", async () => {
       const ok = await askConfirm(
         "Hapus Kategori",
         `Yakin ingin menghapus kategori "${cat.icon} ${cat.label}"? Transaksi lama yang memakai kategori ini tetap tersimpan.`,
@@ -1451,7 +1453,7 @@
         await deleteCategoryRemote(type, cat.id);
         CATEGORIES[type] = CATEGORIES[type].filter((c) => c.id !== cat.id);
         rebuildCategoryLookup();
-        tr.remove();
+        li.remove();
         if (CATEGORIES[type].length === 0) renderCategoryManageList();
         populateCategories(currentType);
         renderHistory();
@@ -1463,7 +1465,7 @@
       }
     });
 
-    return tr;
+    return li;
   }
 
   /* ---------------- Riwayat (kalender) ---------------- */

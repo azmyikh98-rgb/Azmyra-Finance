@@ -331,6 +331,7 @@ img, svg{ display: block; }
 
 /* ---------------- Transaction list (dashboard) ---------------- */
 .tx-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+.tx-list[hidden]{ display:none; }
 .tx-list li{
   display:flex; align-items:center; justify-content:space-between; gap:14px;
   padding: 13px 0; border-bottom: 1px solid var(--line);
@@ -418,20 +419,23 @@ img, svg{ display: block; }
 .field-row--cat{ grid-template-columns: 90px 1fr; }
 .field--icon input{ text-align:center; }
 
-/* Baris kategori dipakai di dalam <table class="tx-table"> yang sama
-   dengan tabel Riwayat, jadi th/td, border, padding, dan hover-nya otomatis
-   ikut style .tx-table — di sini cuma menambah yang khusus kategori. */
-.cat-view-icon{ font-size:16px; margin-right:9px; }
-.cat-view-label{ font-weight:600; color: var(--pine); }
-.cat-edit-fields{ display:inline-flex; gap:8px; vertical-align:middle; }
+/* Baris kategori dipakai di dalam <ul class="tx-list"> yang sama dengan
+   list Riwayat/Dashboard, jadi layout icon+meta di kiri & aksi di kanan,
+   border dan padding-nya otomatis ikut style .tx-list — di sini cuma
+   menambah yang khusus kategori (mode lihat vs mode edit-inline). */
+.tx-list--cat li{ justify-content:space-between; }
+.tx-list--cat .tx-left{ flex:1; min-width:0; }
+.tx-list--cat .tx-actions{ display:flex; align-items:center; flex-shrink:0; }
+.cat-view-label{ font-weight:700; font-size:14px; color: var(--pine); }
+.cat-edit-fields{ display:inline-flex; gap:8px; align-items:center; flex:1; min-width:0; }
 .cat-edit-fields[hidden]{ display:none; }
 /* Aturan input[type=text] global punya specificity lebih tinggi dari class
    biasa (attribute+tag > class tunggal), jadi override lebar di sini perlu
    digabung dengan parent class + !important supaya benar-benar menang. */
-.cat-edit-fields input.cat-edit-icon{ width:52px !important; text-align:center; }
-.cat-edit-fields input.cat-edit-label{ width:200px !important; max-width:40vw; }
+.cat-edit-fields input.cat-edit-icon{ width:52px !important; flex-shrink:0; text-align:center; }
+.cat-edit-fields input.cat-edit-label{ width:auto !important; flex:1; min-width:0; }
 .cat-manage-input{
-  border:1.5px solid var(--line); border-radius:9px; padding:7px 9px; font-size:13.5px;
+  border:1.5px solid var(--line); border-radius:9px; padding:8px 10px; font-size:13.5px;
   font-family:inherit; color:var(--pine); background:#fff;
 }
 .cat-manage-input:focus{ border-color: var(--fern); box-shadow: 0 0 0 3px var(--fern-light); outline:none; }
@@ -447,8 +451,9 @@ img, svg{ display: block; }
 .icon-btn-sm.cat-delete-btn:hover{ color: var(--brick); background: var(--brick-light); }
 .icon-btn-sm.cat-save-btn:hover{ color: var(--fern-dk); background: var(--fern-light); }
 @media (max-width: 560px){
-  .cat-edit-fields{ flex-wrap:wrap; }
-  .cat-edit-fields input.cat-edit-label{ width:100% !important; max-width:none; order:1; }
+  .tx-list--cat li{ flex-wrap:wrap; }
+  .cat-edit-fields{ flex-wrap:wrap; width:100%; }
+  .cat-edit-fields input.cat-edit-label{ width:100% !important; order:1; }
   .cat-edit-fields input.cat-edit-icon{ order:2; }
 }
 
@@ -785,57 +790,12 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
 }
 .chip.is-active{ background: var(--pine); border-color: var(--pine); color:#fff; }
 
-.table-wrap{ overflow-x:auto; }
-.tx-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
-.tx-table th{
-  text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.05em;
-  color: var(--ink-3); font-weight:700; padding: 0 10px 12px; border-bottom:2px solid var(--line);
-  white-space:nowrap;
-}
-.tx-table td{ padding: 13px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
-.tx-table tr:last-child td{ border-bottom:none; }
-.align-right{ text-align:right; }
-.cat-badge{
-  display:inline-flex; align-items:center; gap:7px; font-weight:700; font-size:13px;
-  padding: 5px 11px 5px 8px; border-radius:999px;
-}
-.cat-badge.income{ background: var(--fern-light); color: var(--fern-dk); }
-.cat-badge.expense{ background: var(--brick-light); color: var(--brick); }
-.note-cell{ color: var(--moss); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.amount-cell{ font-weight:700; font-variant-numeric: tabular-nums; }
-.amount-cell.income{ color: var(--fern-dk); }
-.amount-cell.expense{ color: var(--brick); }
 .row-delete{
   background:none; border:none; cursor:pointer; color: var(--ink-3); padding:6px; border-radius:8px;
   transition: color .15s ease, background .15s ease;
 }
 .row-delete:hover{ color: var(--brick); background: var(--brick-light); }
 .row-delete svg{ width:16px; height:16px; }
-
-/* Tabel jadi "kartu" di layar sempit — bukan scroll horizontal yang susah
-   dibaca. Header disembunyikan, tiap baris jadi blok dengan label kecil
-   di depan tiap nilai (dari atribut data-label). */
-@media (max-width: 640px){
-  .table-wrap{ overflow-x:visible; }
-  .tx-table thead{ display:none; }
-  .tx-table, .tx-table tbody, .tx-table tr, .tx-table td{ display:block; width:100%; }
-  .tx-table tr{
-    border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:10px;
-  }
-  .tx-table tr:last-child{ margin-bottom:0; }
-  .tx-table td{
-    border-bottom:1px solid var(--line); padding:8px 0;
-    display:flex; align-items:center; justify-content:space-between; gap:12px; text-align:right;
-  }
-  .tx-table td:last-child{ border-bottom:none; }
-  .tx-table td::before{
-    content: attr(data-label); font-size:11px; font-weight:700; color: var(--ink-3);
-    text-transform:uppercase; letter-spacing:.03em; text-align:left; flex-shrink:0;
-  }
-  .tx-table td[data-label="Aksi"]::before{ display:none; }
-  .tx-table td[data-label="Aksi"]{ justify-content:flex-end; }
-  .note-cell{ max-width: 60%; }
-}
 
 /* ---------------- Pagination ---------------- */
 .pagination{ display:flex; align-items:center; justify-content:center; gap:16px; margin-top:16px; }
