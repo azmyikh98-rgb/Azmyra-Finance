@@ -2394,26 +2394,21 @@
      worker versi lama (bukan pemasangan PWA pertama kali), tampilkan banner
      supaya user bisa klik "Update" untuk reload dan pakai versi terbarunya —
      bukan reload otomatis diam-diam yang bisa mengganggu saat lagi mengisi
-     form transaksi. */
+     form transaksi. Banner ini sengaja TIDAK punya tombol tutup — informasi
+     "ada versi baru" harus tetap terlihat sampai user benar-benar meng-update,
+     bukan hilang begitu saja dan terlupakan. */
   const updateBanner = document.getElementById("update-banner");
   const updateBannerBtn = document.getElementById("update-banner-btn");
-  const updateBannerDismiss = document.getElementById("update-banner-dismiss");
   let isReloadingForUpdate = false;
 
   function showUpdateBanner() {
     updateBanner.classList.add("is-visible");
-  }
-  function hideUpdateBanner() {
-    updateBanner.classList.remove("is-visible");
   }
   if (updateBannerBtn) {
     updateBannerBtn.addEventListener("click", () => {
       isReloadingForUpdate = true;
       window.location.reload();
     });
-  }
-  if (updateBannerDismiss) {
-    updateBannerDismiss.addEventListener("click", hideUpdateBanner);
   }
 
   function initUpdateWatcher() {
