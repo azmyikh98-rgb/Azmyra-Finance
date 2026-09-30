@@ -40,7 +40,7 @@ messaging.onBackgroundMessage((payload) => {
 /* ---------------- PWA: cache app shell untuk mode offline ----------------
    NAIKKAN angka versi ini (v1 -> v2 -> ...) setiap kali kamu ganti isi
    file-file di bawah, supaya pengguna lama otomatis dapat versi terbaru. */
-const CACHE_NAME = "azmyra-finance-v5";
+const CACHE_NAME = "azmyra-finance-v6";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -59,22 +59,17 @@ self.addEventListener("install", (event) => {
       .then((cache) => cache.addAll(APP_SHELL))
       .catch(() => {}) // jangan sampai gagal cache 1 file membatalkan install
   );
-  // TIDAK lagi self.skipWaiting() otomatis di sini. Dulu ini dipanggil
-  // langsung, jadi worker versi baru langsung aktif walau tab lama masih
-  // kebuka — akibatnya banner "ada pembaruan" bisa muncul lagi setelah
-  // user klik Update (karena proses aktivasi versi baru itu masih
-  // berlangsung tepat saat halaman reload, lalu "selesai" sendiri di
-  // reload berikutnya dan dianggap pembaruan baru lagi).
-  // Sekarang worker baru sengaja DIBIARKAN "menunggu" (waiting) sampai
-  // ada perintah eksplisit dari halaman (lewat tombol "Update" di
-  // js/app.js, yang kirim pesan SKIP_WAITING di bawah) — jadi aktivasinya
-  // cuma terjadi SEKALI, persis saat user benar-benar klik Update.
-});
-
-self.addEventListener("message", (event) => {
-  if (event.data === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
+  // self.skipWaiting() dipanggil otomatis di sini (tidak lagi menunggu
+  // tombol/pesan dari halaman) — karena TIDAK ADA lagi notifikasi/popup
+  // "ada pembaruan" di UI, tidak ada lagi yang perlu memicu aktivasi
+  // secara manual. Worker versi baru langsung aktif begitu selesai
+  // di-install, lalu self.clients.claim() di bawah membuatnya langsung
+  // mengambil alih tab yang sedang terbuka juga — semua diam-diam, tanpa
+  // perlu reload paksa atau pemberitahuan apa pun ke pengguna. Karena
+  // fetch handler di bawah sudah "network-first" + cache:"no-store",
+  // konten yang ditampilkan tetap selalu yang terbaru begitu app
+  // dibuka/dimuat ulang secara wajar oleh pengguna.
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {

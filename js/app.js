@@ -2386,128 +2386,18 @@
   let messagingInstance = null;
   let swRegistration = null;
 
-  /* ---------------- Pemberitahuan "ada pembaruan baru" ----------------
-     Alurnya:
-     1. Service worker versi baru boleh SELESAI di-install, tapi sengaja
-        dibuat "menunggu" (bukan langsung aktif — lihat firebase-messaging-
-        sw.js, tidak ada skipWaiting() otomatis lagi).
-     2. Begitu ada worker yang berstatus "menunggu" DAN tab ini sudah
-        dikontrol worker versi lama (bukan pemasangan PWA pertama kali),
-        baru banner ditampilkan.
-     3. Klik "Update":
-        a. Banner LANGSUNG disembunyikan saat itu juga (tidak menunggu apa
-           pun) — supaya syaratnya "hilang begitu tombol Update diklik"
-           selalu terpenuhi, apa pun yang terjadi setelahnya di balik
-           layar.
-        b. Pesan SKIP_WAITING dikirim ke worker yang menunggu itu, supaya
-           dia aktif menggantikan yang lama.
-        c. Reload dilakukan begitu event controllerchange sungguhan
-           terjadi (idealnya ini yang terjadi duluan) — TAPI juga ada
-           jaring pengaman berupa timeout: kalau controllerchange tidak
-           kunjung terpicu dalam beberapa detik, reload tetap dipaksa
-           jalan. Ini penting karena di sebagian browser (terutama Safari
-           iOS, apalagi saat aplikasi dibuka dari ikon Home Screen /
-           mode PWA "standalone"), event controllerchange kadang TIDAK
-           terpicu sama sekali walau worker barunya sudah benar-benar
-           aktif — kalau reload cuma bergantung pada event itu saja,
-           halaman bisa gagal ter-reload dan jadi terasa seperti
-           "tombol Update tidak berfungsi".
-        `reloadedForUpdate` menjaga supaya reload cuma terjadi sekali,
-        apa pun jalur yang memicunya duluan (event atau timeout). */
-  const updateBanner = document.getElementById("update-banner");
-  const updateBannerBtn = document.getElementById("update-banner-btn");
-  let waitingWorker = null;
-  let reloadedForUpdate = false;
-  let updateFallbackTimer = null;
-
-  function showUpdateBanner(worker) {
-    waitingWorker = worker;
-    updateBanner.classList.add("is-visible");
-  }
-
-  function hideUpdateBanner() {
-    updateBanner.classList.remove("is-visible");
-  }
-
-  function reloadForUpdate() {
-    if (reloadedForUpdate) return;
-    reloadedForUpdate = true;
-    if (updateFallbackTimer) {
-      clearTimeout(updateFallbackTimer);
-      updateFallbackTimer = null;
-    }
-    window.location.reload();
-  }
-
-  if (updateBannerBtn) {
-    updateBannerBtn.addEventListener("click", () => {
-      // Langkah 3a: sembunyikan banner SEKARANG JUGA, tidak menunggu
-      // controllerchange atau apa pun — ini yang membuat "popup hilang
-      // begitu tombol Update diklik" selalu benar, terlepas dari apakah
-      // controllerchange di browser tertentu terpicu atau tidak.
-      hideUpdateBanner();
-      updateBannerBtn.disabled = true;
-
-      if (!waitingWorker) {
-        // Jaga-jaga kalau referensinya entah kenapa hilang — reload biasa
-        // tetap lebih baik daripada tombolnya tidak melakukan apa-apa.
-        window.location.reload();
-        return;
-      }
-
-      waitingWorker.postMessage("SKIP_WAITING");
-
-      // Jaring pengaman: kalau controllerchange tidak terpicu dalam 4
-      // detik (kasus dikenal di Safari iOS / mode PWA standalone), tetap
-      // paksa reload supaya user tidak pernah "nyangkut" menunggu.
-      updateFallbackTimer = setTimeout(reloadForUpdate, 4000);
-    });
-  }
-
-  function initUpdateWatcher() {
-    if (!("serviceWorker" in navigator)) return;
-
-    // Reload persis SEKALI, tepat saat kontrol halaman ini benar-benar
-    // berpindah ke worker baru (bukan reload langsung saat tombol diklik).
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      reloadForUpdate();
-    });
-
-    // Browser otomatis cek update service worker sesekali, tapi supaya
-    // pembaruan terdeteksi lebih cepat (misal user balik buka tab setelah
-    // lama), cek ulang manual tiap kali tab ini jadi aktif lagi.
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible" && swRegistration) {
-        swRegistration.update().catch(() => {});
-      }
-    });
-  }
-
-  // Dipanggil dari registerAppServiceWorker() setelah registrasi berhasil —
-  // mengecek worker yang sudah menunggu saat ini, dan memasang pendengar
-  // untuk worker baru yang baru mulai di-install setelahnya.
-  function watchForWaitingWorker(registration) {
-    const hadControllerAtStart = !!navigator.serviceWorker.controller;
-
-    function handleWaiting(worker) {
-      if (!worker) return;
-      // Kalau tidak ada controller sama sekali, ini pemasangan PWA
-      // pertama kali di perangkat ini — bukan pembaruan, jangan tampilkan
-      // banner (tidak ada versi "lama" yang sedang dipakai untuk diganti).
-      if (!hadControllerAtStart) return;
-      showUpdateBanner(worker);
-    }
-
-    if (registration.waiting) handleWaiting(registration.waiting);
-
-    registration.addEventListener("updatefound", () => {
-      const newWorker = registration.installing;
-      if (!newWorker) return;
-      newWorker.addEventListener("statechange", () => {
-        if (newWorker.state === "installed") handleWaiting(newWorker);
-      });
-    });
-  }
+  // Catatan: dulu di sini ada logika banner "ada pembaruan, klik untuk
+  // update" (waiting worker + tombol Update + reload). Atas permintaan
+  // eksplisit, notifikasi itu DIHAPUS SELURUHNYA — tidak ada lagi popup
+  // apa pun yang muncul saat ada versi baru. Pembaruan sekarang berjalan
+  // diam-diam: service worker versi baru langsung aktif begitu selesai
+  // di-install (lihat self.skipWaiting() di firebase-messaging-sw.js) dan
+  // otomatis mengambil alih tab yang sedang terbuka (self.clients.claim()).
+  // Karena fetch handler-nya sudah "network-first" + cache:"no-store",
+  // setiap kali app dibuka/di-reload, file app shell (html/css/js) yang
+  // diambil selalu yang TERBARU dari server — jadi tanpa banner sekalipun,
+  // user tetap dapat versi terbaru secara otomatis di kunjungan berikutnya,
+  // tanpa perlu diberitahu atau menekan tombol apa pun.
 
   function updateNotifButtonLabel() {
     if (!isFirebaseConfigured) {
@@ -2535,9 +2425,7 @@
     if (!("serviceWorker" in navigator)) return null;
     // Fungsi ini dipanggil dari beberapa tempat (init, initNotifications,
     // dll). Kalau sudah pernah berhasil register, pakai registration yang
-    // sama — supaya watchForWaitingWorker() (dan listener updatefound di
-    // dalamnya) juga tidak terpasang berkali-kali untuk registration yang
-    // sama persis.
+    // sama.
     if (swRegistration) return swRegistration;
     try {
       // updateViaCache:"none" — jangan pernah pakai HTTP cache browser buat
@@ -2547,7 +2435,6 @@
       swRegistration = await navigator.serviceWorker.register("firebase-messaging-sw.js", {
         updateViaCache: "none",
       });
-      watchForWaitingWorker(swRegistration);
       return swRegistration;
     } catch (err) {
       console.error("Gagal mendaftarkan service worker:", err);
@@ -2690,7 +2577,6 @@
 
   /* ---------------- Init ---------------- */
   function init() {
-    initUpdateWatcher();
     registerAppServiceWorker();
     const stored = loadStoredUser();
     if (stored && stored.username) {
