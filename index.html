@@ -658,10 +658,20 @@
       </button>
     </div>
     <form id="category-form" novalidate>
+      <div class="field">
+        <label id="cat-form-type-label">Jenis Kategori</label>
+        <div class="chip-group" id="cat-form-type" role="group" aria-label="Pilih jenis kategori">
+          <button type="button" class="chip" data-formtype="income">Pemasukan</button>
+          <button type="button" class="chip" data-formtype="expense">Pengeluaran</button>
+        </div>
+      </div>
       <div class="field-row field-row--cat">
         <div class="field field--icon">
-          <label for="cat-icon">Emoji</label>
-          <input type="text" id="cat-icon" maxlength="4" placeholder="🏷️" autocomplete="off" />
+          <label for="cat-icon-btn">Emoji</label>
+          <button type="button" class="emoji-pick-btn" id="cat-icon-btn" aria-haspopup="dialog">
+            <span id="cat-icon-preview">🏷️</span>
+          </button>
+          <input type="hidden" id="cat-icon" value="🏷️" />
         </div>
         <div class="field field--grow">
           <label for="cat-label">Nama Kategori</label>
@@ -672,6 +682,24 @@
         <span id="cat-submit-label">+ Tambah Kategori</span>
       </button>
     </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="emoji-picker-modal" hidden>
+  <div class="modal-card modal-card--emoji">
+    <div class="modal-head">
+      <h2>Pilih Emoji</h2>
+      <button type="button" class="modal-close-btn" id="emoji-picker-close" aria-label="Tutup">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="search-input">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input type="search" id="emoji-search" placeholder="Cari emoji… misal: makan, mobil, uang" autocomplete="off" />
+    </div>
+    <div class="chip-group" id="emoji-cat-tabs"></div>
+    <div class="emoji-grid" id="emoji-grid"></div>
+    <p class="empty-hint" id="emoji-empty" hidden>Emoji tidak ditemukan. Coba kata kunci lain.</p>
   </div>
 </div>
 

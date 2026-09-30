@@ -418,6 +418,12 @@ img, svg{ display: block; }
 .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 .field-row--cat{ grid-template-columns: 90px 1fr; }
 .field--icon input{ text-align:center; }
+.emoji-pick-btn{
+  width:100%; height:44px; border:1.5px solid var(--line); border-radius:11px; background:#fff;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:21px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.emoji-pick-btn:hover, .emoji-pick-btn:focus-visible{ border-color: var(--fern); background: var(--fern-light); outline:none; }
 
 /* Baris kategori dipakai di dalam <ul class="tx-list"> yang sama dengan
    list Riwayat/Dashboard, jadi layout icon+meta di kiri & aksi di kanan,
@@ -515,6 +521,19 @@ img, svg{ display: block; }
 .modal-close-btn svg{ width:19px; height:19px; }
 
 .modal-card--sm{ max-width:360px; }
+.modal-card--emoji{ max-width:460px; }
+.modal-card--emoji .search-input{ margin-bottom:12px; }
+.modal-card--emoji #emoji-cat-tabs{ margin-bottom:12px; }
+.emoji-grid{
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap:4px;
+  max-height:290px; overflow-y:auto; padding-right:2px;
+}
+.emoji-grid button{
+  background:none; border:none; cursor:pointer; font-size:22px; line-height:1;
+  aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;
+  border-radius:9px; transition: background .12s ease;
+}
+.emoji-grid button:hover, .emoji-grid button:focus-visible{ background: var(--mist); outline:none; }
 .confirm-modal-message{ font-size:14.5px; color: var(--pine); line-height:1.55; margin:0 0 22px; }
 .confirm-modal-actions{ display:flex; gap:10px; justify-content:flex-end; }
 .confirm-modal-actions .btn{ flex:1; }

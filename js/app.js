@@ -18,6 +18,254 @@
 
   const AUTH_STORAGE_KEY = "azmyra_finance_user_v1";
 
+  // Daftar emoji untuk picker "Pilih Emoji" di form Tambah/Edit Kategori —
+  // dikelompokkan per tema supaya mudah dijelajah, plus kata kunci (Indonesia
+  // & sedikit Inggris) untuk pencarian. [emoji, "kata kunci dipisah spasi"]
+  const EMOJI_GROUPS = [
+    {
+      name: "Populer",
+      items: [
+        ["💰", "uang duit money cash tabungan"],
+        ["💵", "uang kertas cash dollar"],
+        ["💳", "kartu kredit debit card"],
+        ["🏦", "bank rekening"],
+        ["🧾", "struk nota kwitansi receipt bill tagihan"],
+        ["📱", "hp ponsel handphone gadget phone"],
+        ["🍽️", "makan makanan food restoran"],
+        ["🚗", "mobil transportasi car"],
+        ["🏠", "rumah tagihan home house"],
+        ["🎁", "hadiah kado gift bonus thr"],
+        ["💼", "kerja kantor tas kerja job briefcase usaha"],
+        ["📈", "investasi grafik naik chart profit untung"],
+        ["📉", "rugi turun grafik chart loss"],
+        ["🛒", "belanja troli shopping cart"],
+        ["⚡", "listrik energi electricity token pln"],
+        ["💧", "air pdam water"],
+        ["🎓", "pendidikan sekolah wisuda education"],
+        ["🏥", "kesehatan rumah sakit health hospital"],
+        ["✈️", "liburan pesawat travel flight"],
+        ["🐾", "hewan peliharaan pet"],
+      ],
+    },
+    {
+      name: "Makanan & Minuman",
+      items: [
+        ["🍚", "nasi rice"],
+        ["🍜", "mie noodle bakso"],
+        ["🍔", "burger"],
+        ["🍕", "pizza"],
+        ["🍗", "ayam chicken"],
+        ["🥩", "daging meat"],
+        ["🐟", "ikan fish"],
+        ["🍤", "udang shrimp seafood"],
+        ["🥗", "salad sayur"],
+        ["🍲", "sup soto soup"],
+        ["🍛", "kari curry nasi"],
+        ["🌮", "taco"],
+        ["🍣", "sushi"],
+        ["🍱", "bento lunch box"],
+        ["🥟", "pangsit dumpling"],
+        ["🍞", "roti bread"],
+        ["🥐", "croissant"],
+        ["🧁", "cupcake kue"],
+        ["🎂", "kue ulang tahun cake"],
+        ["🍪", "kue kering cookie"],
+        ["🍩", "donat donut"],
+        ["🍫", "coklat chocolate"],
+        ["🍬", "permen candy"],
+        ["🍿", "popcorn"],
+        ["☕", "kopi coffee"],
+        ["🍵", "teh tea"],
+        ["🥤", "minuman soda drink es"],
+        ["🧃", "jus juice"],
+        ["🍺", "bir beer"],
+        ["🍷", "anggur wine"],
+        ["🥛", "susu milk"],
+        ["🍳", "telur goreng egg"],
+        ["🥦", "brokoli sayur vegetable"],
+        ["🍎", "apel apple buah"],
+        ["🍌", "pisang banana buah"],
+        ["🍇", "anggur grape buah"],
+        ["🍉", "semangka watermelon buah"],
+        ["🥭", "mangga mango buah"],
+      ],
+    },
+    {
+      name: "Belanja",
+      items: [
+        ["🛍️", "belanja kantong shopping bag"],
+        ["🛒", "troli belanja cart"],
+        ["👗", "baju pakaian dress fashion"],
+        ["👕", "kaos baju shirt"],
+        ["👖", "celana jeans"],
+        ["👟", "sepatu shoes"],
+        ["👜", "tas wanita bag"],
+        ["💄", "kosmetik makeup lipstik"],
+        ["💇", "salon rambut haircut"],
+        ["💅", "nail salon kuku"],
+        ["🎮", "game hiburan gaming"],
+        ["📚", "buku book"],
+        ["🧴", "sabun perawatan skincare"],
+        ["🪥", "sikat gigi toothbrush"],
+        ["🧻", "tisu tissue"],
+        ["🧹", "sapu bersih cleaning"],
+        ["🧺", "laundry cucian"],
+        ["🔧", "perbaikan tools repair servis"],
+      ],
+    },
+    {
+      name: "Transportasi",
+      items: [
+        ["🚗", "mobil car"],
+        ["🚕", "taksi taxi"],
+        ["🚙", "suv mobil"],
+        ["🚌", "bus"],
+        ["🚉", "stasiun kereta station"],
+        ["🚆", "kereta train"],
+        ["🚄", "kereta cepat highspeed train"],
+        ["✈️", "pesawat plane flight"],
+        ["🛵", "motor scooter"],
+        ["🏍️", "motor motorcycle"],
+        ["🚲", "sepeda bicycle"],
+        ["⛽", "bensin bbm gas fuel spbu"],
+        ["🅿️", "parkir parking"],
+        ["🚦", "lalu lintas traffic tilang"],
+        ["🛣️", "jalan tol road highway"],
+        ["🚢", "kapal ship"],
+        ["🚀", "roket rocket travel"],
+      ],
+    },
+    {
+      name: "Rumah & Tagihan",
+      items: [
+        ["🏠", "rumah house home"],
+        ["🏢", "gedung kantor building office"],
+        ["🔑", "kunci key"],
+        ["🛋️", "sofa furniture"],
+        ["🛏️", "kasur bed"],
+        ["🚿", "shower mandi"],
+        ["🚽", "toilet wc"],
+        ["🔥", "gas api fire"],
+        ["⚡", "listrik electricity token"],
+        ["💡", "lampu listrik bulb"],
+        ["📶", "internet wifi"],
+        ["📡", "sinyal internet signal"],
+        ["🖥️", "komputer computer"],
+        ["💻", "laptop"],
+        ["📺", "tv televisi"],
+        ["🧊", "kulkas ac dingin fridge cold"],
+        ["🧰", "perkakas toolbox"],
+      ],
+    },
+    {
+      name: "Uang & Kerja",
+      items: [
+        ["💰", "uang tabungan money savings"],
+        ["💵", "uang cash dollar"],
+        ["💴", "yen"],
+        ["💶", "euro"],
+        ["💷", "pound"],
+        ["🪙", "koin coin"],
+        ["💳", "kartu kredit card"],
+        ["🏦", "bank"],
+        ["🧾", "nota struk kwitansi receipt invoice"],
+        ["📊", "laporan statistik report chart"],
+        ["📈", "naik untung profit growth"],
+        ["📉", "turun rugi loss decline"],
+        ["💹", "saham investasi stock market"],
+        ["🧮", "hitung kalkulator calculator"],
+        ["💼", "kerja kantor tas job briefcase gaji"],
+        ["📝", "catatan tugas note"],
+        ["📄", "dokumen file document"],
+        ["🗂️", "arsip file organizer"],
+        ["🤝", "kerjasama deal handshake"],
+        ["🎯", "target goal"],
+        ["🏆", "penghargaan bonus prestasi award trophy"],
+      ],
+    },
+    {
+      name: "Hiburan & Hobi",
+      items: [
+        ["🎬", "film movie bioskop"],
+        ["🎮", "game"],
+        ["🎧", "musik headphone"],
+        ["🎵", "lagu musik note"],
+        ["🎸", "gitar musik"],
+        ["📷", "kamera foto photo camera"],
+        ["🎨", "seni lukis hobi art painting"],
+        ["📖", "buku baca reading book"],
+        ["🧩", "puzzle hobi"],
+        ["⚽", "bola sepakbola football"],
+        ["🏀", "basket basketball"],
+        ["🏸", "badminton"],
+        ["🎳", "bowling"],
+        ["🎣", "mancing fishing"],
+        ["🏕️", "camping kemah"],
+        ["🎡", "hiburan wisata ferris wheel"],
+        ["🎟️", "tiket ticket"],
+      ],
+    },
+    {
+      name: "Kesehatan",
+      items: [
+        ["🏥", "rumah sakit hospital"],
+        ["💊", "obat pil medicine pill"],
+        ["💉", "suntik vaksin injection vaccine"],
+        ["🩺", "dokter checkup stethoscope"],
+        ["🦷", "gigi dental"],
+        ["👓", "kacamata glasses"],
+        ["🧠", "otak kesehatan mental brain"],
+        ["🏃", "olahraga lari exercise running gym"],
+        ["🧘", "yoga meditasi meditation"],
+        ["🚴", "sepeda olahraga cycling exercise"],
+      ],
+    },
+    {
+      name: "Pendidikan",
+      items: [
+        ["🎓", "wisuda sekolah pendidikan graduation education"],
+        ["📚", "buku pelajaran books"],
+        ["✏️", "pensil pencil"],
+        ["🖍️", "crayon"],
+        ["🎒", "tas sekolah backpack"],
+        ["🏫", "sekolah school"],
+      ],
+    },
+    {
+      name: "Hewan & Alam",
+      items: [
+        ["🐶", "anjing dog"],
+        ["🐱", "kucing cat"],
+        ["🐦", "burung bird"],
+        ["🐟", "ikan fish"],
+        ["🐰", "kelinci rabbit"],
+        ["🌳", "pohon tree"],
+        ["🌸", "bunga flower"],
+        ["☀️", "matahari sun"],
+        ["🌧️", "hujan rain"],
+      ],
+    },
+    {
+      name: "Simbol & Lainnya",
+      items: [
+        ["🏷️", "label tag kategori"],
+        ["📦", "paket kotak box package"],
+        ["🎁", "hadiah gift"],
+        ["❤️", "hati suka favorite love"],
+        ["⭐", "bintang favorit star"],
+        ["✅", "selesai centang check done"],
+        ["❌", "batal hapus cancel"],
+        ["⏰", "waktu jam alarm time"],
+        ["📅", "kalender tanggal calendar date"],
+        ["🔔", "notifikasi bell"],
+        ["🔒", "kunci aman lock secure"],
+        ["🌐", "internet web globe"],
+        ["📌", "pin penting pin"],
+        ["❓", "tanya lainnya question other"],
+      ],
+    },
+  ];
+
   // Kategori TIDAK lagi hardcode di sini — diambil dari spreadsheet (sheet
   // "KategoriPemasukan" & "KategoriPengeluaran") lewat Apps Script setiap
   // kali data dimuat. Isi array kosong sebagai default sebelum data datang.
@@ -1243,6 +1491,8 @@
   const catTypeButtons = document.querySelectorAll("[data-cattype]");
   const categoryForm = document.getElementById("category-form");
   const catIconInput = document.getElementById("cat-icon");
+  const catIconBtn = document.getElementById("cat-icon-btn");
+  const catIconPreview = document.getElementById("cat-icon-preview");
   const catLabelInput = document.getElementById("cat-label");
   const catSubmitBtn = document.getElementById("cat-submit");
   const catSubmitLabel = document.getElementById("cat-submit-label");
@@ -1252,6 +1502,20 @@
   const categoryModal = document.getElementById("category-modal");
   const catAddOpenBtn = document.getElementById("cat-add-open-btn");
   const categoryModalClose = document.getElementById("category-modal-close");
+  const catFormTypeButtons = document.querySelectorAll("[data-formtype]");
+  let categoryFormType = "income"; // jenis yang dipilih di form Tambah Kategori (independen dari tab list)
+
+  function setCategoryFormType(type) {
+    categoryFormType = type;
+    catFormTypeButtons.forEach((b) => {
+      const active = b.dataset.formtype === type;
+      b.classList.toggle("is-active", active);
+      b.setAttribute("aria-selected", String(active));
+    });
+  }
+  catFormTypeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => setCategoryFormType(btn.dataset.formtype));
+  });
 
   catTypeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1278,6 +1542,12 @@
   /* ---- Modal Tambah Kategori ---- */
   function openCategoryModal() {
     categoryForm.reset();
+    catIconInput.value = "🏷️";
+    catIconPreview.textContent = "🏷️";
+    // Defaultnya ikut tab yang lagi aktif di daftar, tapi tetap bisa diganti
+    // di dalam form — supaya jelas kategori baru ini masuk Pemasukan atau
+    // Pengeluaran, tidak "diam-diam" ikut tab yang sedang dilihat.
+    setCategoryFormType(categoryManageType);
     categoryModal.hidden = false;
     catLabelInput.focus();
   }
@@ -1290,22 +1560,113 @@
     if (e.target === categoryModal) closeCategoryModal();
   });
 
+  /* ---- Emoji picker (dipakai oleh tombol Emoji di form Tambah Kategori) ---- */
+  const emojiPickerModal = document.getElementById("emoji-picker-modal");
+  const emojiPickerClose = document.getElementById("emoji-picker-close");
+  const emojiSearchInput = document.getElementById("emoji-search");
+  const emojiCatTabs = document.getElementById("emoji-cat-tabs");
+  const emojiGrid = document.getElementById("emoji-grid");
+  const emojiEmpty = document.getElementById("emoji-empty");
+  let activeEmojiGroup = 0;
+
+  function renderEmojiTabs() {
+    emojiCatTabs.innerHTML = "";
+    EMOJI_GROUPS.forEach((group, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "chip" + (idx === activeEmojiGroup ? " is-active" : "");
+      btn.textContent = group.name;
+      btn.addEventListener("click", () => {
+        activeEmojiGroup = idx;
+        emojiSearchInput.value = "";
+        renderEmojiTabs();
+        renderEmojiGrid();
+      });
+      emojiCatTabs.appendChild(btn);
+    });
+  }
+
+  function renderEmojiGrid() {
+    const term = emojiSearchInput.value.trim().toLowerCase();
+    emojiCatTabs.hidden = !!term;
+    let items;
+    if (term) {
+      const seen = new Set();
+      items = [];
+      EMOJI_GROUPS.forEach((group) => {
+        group.items.forEach(([emoji, keywords]) => {
+          if (!seen.has(emoji) && keywords.includes(term)) {
+            seen.add(emoji);
+            items.push(emoji);
+          }
+        });
+      });
+    } else {
+      items = EMOJI_GROUPS[activeEmojiGroup].items.map(([emoji]) => emoji);
+    }
+
+    emojiGrid.innerHTML = "";
+    emojiEmpty.hidden = items.length !== 0;
+    items.forEach((emoji) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = emoji;
+      btn.title = emoji;
+      btn.addEventListener("click", () => {
+        catIconInput.value = emoji;
+        catIconPreview.textContent = emoji;
+        closeEmojiPicker();
+      });
+      emojiGrid.appendChild(btn);
+    });
+  }
+
+  function openEmojiPicker() {
+    emojiSearchInput.value = "";
+    emojiCatTabs.hidden = false;
+    renderEmojiTabs();
+    renderEmojiGrid();
+    emojiPickerModal.hidden = false;
+    emojiSearchInput.focus();
+  }
+  function closeEmojiPicker() {
+    emojiPickerModal.hidden = true;
+  }
+  catIconBtn.addEventListener("click", openEmojiPicker);
+  emojiPickerClose.addEventListener("click", closeEmojiPicker);
+  emojiPickerModal.addEventListener("click", (e) => {
+    if (e.target === emojiPickerModal) closeEmojiPicker();
+  });
+  emojiSearchInput.addEventListener("input", renderEmojiGrid);
+
   categoryForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const label = catLabelInput.value.trim();
     const icon = catIconInput.value.trim() || "🏷️";
     if (!label) { showToast("Nama kategori wajib diisi."); return; }
 
-    const ok = await askConfirm("Tambah Kategori", `Tambahkan kategori "${icon} ${label}"?`, "Ya, Tambah");
+    const typeLabel = categoryFormType === "income" ? "Pemasukan" : "Pengeluaran";
+    const ok = await askConfirm("Tambah Kategori", `Tambahkan kategori "${icon} ${label}" ke ${typeLabel}?`, "Ya, Tambah");
     if (!ok) return;
 
     catSubmitBtn.disabled = true;
     const original = catSubmitLabel.textContent;
     catSubmitLabel.textContent = "Menyimpan…";
     try {
-      const newCat = await addCategoryRemote(categoryManageType, label, icon);
-      CATEGORIES[categoryManageType].push(newCat);
+      const newCat = await addCategoryRemote(categoryFormType, label, icon);
+      CATEGORIES[categoryFormType].push(newCat);
       rebuildCategoryLookup();
+      // Pindahkan tab daftar ke jenis yang baru saja ditambahkan supaya
+      // kategori barunya langsung kelihatan, tanpa perlu klik tab manual.
+      if (categoryFormType !== categoryManageType) {
+        categoryManageType = categoryFormType;
+        catTypeButtons.forEach((b) => {
+          const active = b.dataset.cattype === categoryManageType;
+          b.classList.toggle("is-active", active);
+          b.setAttribute("aria-selected", String(active));
+        });
+        catPage = 1;
+      }
       renderCategoryManageList();
       populateCategories(currentType);
       closeCategoryModal();
