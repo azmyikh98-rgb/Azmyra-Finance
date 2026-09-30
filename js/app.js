@@ -286,10 +286,12 @@
   let currentSource = "rekening"; // sumber dana untuk form Tambah (cash | rekening)
   let currentFilter = "all"; // untuk Riwayat
   let searchTerm = "";
-  // Filter "Lihat Periode" di Dashboard & Laporan: sekarang pakai rentang
-  // tanggal bebas (dari - sampai), bukan lagi pilihan Harian/Mingguan/
-  // Bulanan/Tahunan dengan kalender masing-masing. Default diisi saat
+  // Filter "Lihat Periode" di Dashboard & Laporan: pilihan Harian/Mingguan/
+  // Bulanan/Tahunan (masing-masing dengan kalender sendiri) DITAMBAH satu
+  // pilihan "Rentang Tanggal" bebas (dari - sampai). rangeStart/rangeEnd
+  // hanya dipakai saat periodType === "range"; default diisi saat
   // initPeriodDefaults() dipanggil (lihat di bawah).
+  let periodType = "monthly"; // daily | weekly | monthly | yearly | range
   let rangeStart = todayISO();
   let rangeEnd = todayISO();
   let currentUser = null; // { username, displayName }
@@ -472,13 +474,51 @@
   }
 
   /* ---------------- Range periode ---------------- */
-  // rangeStart/rangeEnd SELALU sudah tervalidasi (start <= end) oleh
-  // handler form di bawah, jadi di sini cukup dibaca apa adanya.
   function getPeriodRange() {
-    return { start: rangeStart, end: rangeEnd };
+    if (periodType === "daily") {
+      const val = selectedDailyDate || todayISO();
+      return { start: val, end: val };
+    }
+    if (periodType === "weekly") {
+      const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
+      const found = weeks.find((w) => w.index === selectedWeekIndex) || weeks[0];
+      return { start: found.start, end: found.end };
+    }
+    if (periodType === "monthly") {
+      const y = selectedMonthYear;
+      const m = selectedMonthIndex + 1;
+      const lastDay = new Date(y, m, 0).getDate();
+      return { start: `${y}-${pad2(m)}-01`, end: `${y}-${pad2(m)}-${pad2(lastDay)}` };
+    }
+    if (periodType === "range") {
+      // rangeStart/rangeEnd SELALU sudah tervalidasi (start <= end) oleh
+      // handler form di bawah, jadi di sini cukup dibaca apa adanya.
+      return { start: rangeStart, end: rangeEnd };
+    }
+    const y = document.getElementById("period-yearly").value || String(new Date().getFullYear());
+    return { start: `${y}-01-01`, end: `${y}-12-31` };
   }
 
   function formatPeriodLabel(range) {
+    if (periodType === "daily") {
+      return parseISODate(range.start).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    }
+    if (periodType === "weekly") {
+      const s = parseISODate(range.start);
+      const e = parseISODate(range.end);
+      const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
+      if (sameMonth) return `${s.getDate()}–${e.getDate()} ${MONTH_NAMES_FULL_ID[s.getMonth()]} ${s.getFullYear()}`;
+      return `${s.getDate()} ${MONTH_NAMES_ID[s.getMonth()]} – ${e.getDate()} ${MONTH_NAMES_ID[e.getMonth()]} ${e.getFullYear()}`;
+    }
+    if (periodType === "monthly") {
+      const s = parseISODate(range.start);
+      return `${MONTH_NAMES_FULL_ID[s.getMonth()]} ${s.getFullYear()}`;
+    }
+    if (periodType === "yearly") {
+      return range.start.slice(0, 4);
+    }
+    // "range": format bebas mengikuti seberapa jauh tanggal awal & akhirnya
+    // berbeda (sehari saja / sebulan / setahun / lintas tahun).
     const s = parseISODate(range.start);
     const e = parseISODate(range.end);
     if (range.start === range.end) {
@@ -584,96 +624,342 @@
     return significant.slice(0, 2);
   }
 
-  /* ---------------- Setup kontrol periode (filter rentang tanggal) ---------------- */
+  /* ---------------- Setup kontrol periode ---------------- */
+  const periodTypeSelect = document.getElementById("period-type-select");
   const periodForm = document.getElementById("period-form");
   const rangeStartInput = document.getElementById("range-start-input");
   const rangeEndInput = document.getElementById("range-end-input");
-  const periodPresetButtons = document.querySelectorAll(".period-preset-chip");
+  const periodFieldWrappers = {
+    daily: document.getElementById("field-daily"),
+    weekly: document.getElementById("field-weekly"),
+    monthly: document.getElementById("field-monthly"),
+    yearly: document.getElementById("field-yearly"),
+    range: document.getElementById("field-range"),
+  };
+  const periodInputs = {
+    yearly: document.getElementById("period-yearly"),
+  };
   const DAY_LABELS_ID = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
-  // Terapkan rentang baru: validasi (start tidak boleh setelah end, auto
-  // tukar posisi kalau kepilih terbalik), simpan ke state, sinkronkan ke
-  // input, lalu render ulang Dashboard & Laporan (dua-duanya pakai rentang
-  // yang sama persis — lihat movePeriodPanel()).
-  function applyDateRange(startVal, endVal) {
-    let s = startVal || rangeStart;
-    let e = endVal || rangeEnd;
-    if (s > e) { const tmp = s; s = e; e = tmp; } // jaga-jaga kalau user pilih terbalik
-    rangeStart = s;
-    rangeEnd = e;
-    rangeStartInput.value = rangeStart;
-    rangeEndInput.value = rangeEnd;
-    updateActivePresetChip();
-    renderPeriodPanels();
-    renderLaporan();
+  function populateMonthYearSelects(monthSelect, yearSelect) {
+    monthSelect.innerHTML = "";
+    MONTH_NAMES_FULL_ID.forEach((name, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = name;
+      monthSelect.appendChild(opt);
+    });
+    const currentYear = new Date().getFullYear();
+    const yearsFromData = transactions.map((t) => Number(t.date.slice(0, 4))).filter((y) => !isNaN(y));
+    const minYear = Math.min(currentYear - 4, ...yearsFromData, currentYear);
+    const maxYear = Math.max(currentYear + 1, ...yearsFromData, currentYear);
+    yearSelect.innerHTML = "";
+    for (let y = maxYear; y >= minYear; y--) {
+      const opt = document.createElement("option");
+      opt.value = String(y);
+      opt.textContent = String(y);
+      yearSelect.appendChild(opt);
+    }
   }
 
-  // Chip preset cuma cara cepat mengisi dua input tanggal — tetap lewat
-  // applyDateRange() yang sama supaya perilakunya (termasuk render ulang)
-  // konsisten dengan submit form biasa.
-  function computePresetRange(preset) {
-    const today = new Date();
-    if (preset === "today") {
-      const iso = todayISO();
-      return { start: iso, end: iso };
-    }
-    if (preset === "week") {
-      const dow = today.getDay();
-      const start = new Date(today);
-      start.setDate(today.getDate() - dow);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      return { start: toISODate(start), end: toISODate(end) };
-    }
-    if (preset === "month") {
-      const y = today.getFullYear();
-      const m = today.getMonth() + 1;
-      const lastDay = new Date(y, m, 0).getDate();
-      return { start: `${y}-${pad2(m)}-01`, end: `${y}-${pad2(m)}-${pad2(lastDay)}` };
-    }
-    // year
-    const y = today.getFullYear();
-    return { start: `${y}-01-01`, end: `${y}-12-31` };
+  /* ---- Kalender Harian ---- */
+  const dayCalendarGrid = document.getElementById("day-calendar-grid");
+  const dayMonthSelect = document.getElementById("day-month-select");
+  const dayYearSelect = document.getElementById("day-year-select");
+  const dayTrigger = document.getElementById("day-trigger");
+  const dayTriggerLabel = document.getElementById("day-trigger-label");
+  const dayCalendarEl = document.getElementById("day-calendar");
+  const dayPickerWrap = dayTrigger.closest(".week-picker-wrap");
+  let dayViewYear = new Date().getFullYear();
+  let dayViewMonth = new Date().getMonth();
+  let selectedDailyDate = todayISO();
+
+  function openDayCalendar() { dayCalendarEl.hidden = false; dayTrigger.setAttribute("aria-expanded", "true"); }
+  function closeDayCalendar() { dayCalendarEl.hidden = true; dayTrigger.setAttribute("aria-expanded", "false"); }
+  dayTrigger.addEventListener("click", () => (dayCalendarEl.hidden ? openDayCalendar() : closeDayCalendar()));
+
+  dayMonthSelect.addEventListener("change", () => { dayViewMonth = Number(dayMonthSelect.value); renderDayCalendar(); });
+  dayYearSelect.addEventListener("change", () => { dayViewYear = Number(dayYearSelect.value); renderDayCalendar(); });
+
+  function renderDayCalendar() {
+    const weeks = getWeeksInMonth(dayViewYear, dayViewMonth);
+    dayMonthSelect.value = String(dayViewMonth);
+    dayYearSelect.value = String(dayViewYear);
+    dayCalendarGrid.innerHTML = "";
+
+    const headerRow = document.createElement("div");
+    headerRow.className = "week-cal-row week-cal-header";
+    DAY_LABELS_ID.forEach((label) => {
+      const span = document.createElement("span");
+      span.className = "week-cal-daylabel";
+      span.textContent = label;
+      headerRow.appendChild(span);
+    });
+    dayCalendarGrid.appendChild(headerRow);
+
+    weeks.forEach((w) => {
+      const row = document.createElement("div");
+      row.className = "week-cal-row";
+      const startDate = parseISODate(w.start);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        const iso = toISODate(d);
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "week-cal-cell";
+        if (d.getMonth() !== dayViewMonth) cell.classList.add("is-outside");
+        if (iso === todayISO()) cell.classList.add("is-today");
+        if (iso === selectedDailyDate) cell.classList.add("is-selected-day");
+        cell.textContent = String(d.getDate());
+        cell.addEventListener("click", () => {
+          selectedDailyDate = iso;
+          updateDayTriggerLabel();
+          renderDayCalendar();
+          closeDayCalendar();
+        });
+        row.appendChild(cell);
+      }
+      dayCalendarGrid.appendChild(row);
+    });
   }
 
-  function updateActivePresetChip() {
-    const matched = ["today", "week", "month", "year"].find((p) => {
-      const r = computePresetRange(p);
-      return r.start === rangeStart && r.end === rangeEnd;
-    });
-    periodPresetButtons.forEach((btn) => {
-      btn.classList.toggle("is-active", btn.dataset.preset === matched);
+  function updateDayTriggerLabel() {
+    dayTriggerLabel.textContent = parseISODate(selectedDailyDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  }
+
+  /* ---- Kalender Mingguan ---- */
+  const weekCalendarGrid = document.getElementById("week-calendar-grid");
+  const weekMonthSelect = document.getElementById("week-month-select");
+  const weekYearSelect = document.getElementById("week-year-select");
+  const weekTrigger = document.getElementById("week-trigger");
+  const weekTriggerLabel = document.getElementById("week-trigger-label");
+  const weekCalendarEl = document.getElementById("week-calendar");
+  const weekPickerWrap = weekTrigger.closest(".week-picker-wrap");
+  let weekViewYear = new Date().getFullYear();
+  let weekViewMonth = new Date().getMonth();
+  let selectedWeekIndex = 1;
+
+  function openWeekCalendar() { weekCalendarEl.hidden = false; weekTrigger.setAttribute("aria-expanded", "true"); }
+  function closeWeekCalendar() { weekCalendarEl.hidden = true; weekTrigger.setAttribute("aria-expanded", "false"); }
+  weekTrigger.addEventListener("click", () => (weekCalendarEl.hidden ? openWeekCalendar() : closeWeekCalendar()));
+
+  weekMonthSelect.addEventListener("change", () => { weekViewMonth = Number(weekMonthSelect.value); renderWeekCalendar(); });
+  weekYearSelect.addEventListener("change", () => { weekViewYear = Number(weekYearSelect.value); renderWeekCalendar(); });
+
+  /* ---- Kalender Bulanan ---- */
+  const monthGrid = document.getElementById("month-grid");
+  const monthYearLabel = document.getElementById("month-picker-year-label");
+  const monthPrevBtn = document.getElementById("month-prev-year");
+  const monthNextBtn = document.getElementById("month-next-year");
+  const monthTrigger = document.getElementById("month-trigger");
+  const monthTriggerLabel = document.getElementById("month-trigger-label");
+  const monthCalendarEl = document.getElementById("month-calendar");
+  const monthPickerWrap = monthTrigger.closest(".week-picker-wrap");
+  let monthViewYear = new Date().getFullYear();
+  let selectedMonthYear = new Date().getFullYear();
+  let selectedMonthIndex = new Date().getMonth();
+
+  function openMonthCalendar() { monthCalendarEl.hidden = false; monthTrigger.setAttribute("aria-expanded", "true"); }
+  function closeMonthCalendar() { monthCalendarEl.hidden = true; monthTrigger.setAttribute("aria-expanded", "false"); }
+  monthTrigger.addEventListener("click", () => (monthCalendarEl.hidden ? openMonthCalendar() : closeMonthCalendar()));
+
+  function renderMonthGrid() {
+    monthYearLabel.textContent = String(monthViewYear);
+    monthGrid.innerHTML = "";
+    MONTH_NAMES_ID.forEach((name, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "month-grid-btn";
+      const today = new Date();
+      if (monthViewYear === today.getFullYear() && idx === today.getMonth()) btn.classList.add("is-current");
+      if (monthViewYear === selectedMonthYear && idx === selectedMonthIndex) btn.classList.add("is-selected");
+      btn.textContent = name;
+      btn.addEventListener("click", () => {
+        selectedMonthYear = monthViewYear;
+        selectedMonthIndex = idx;
+        updateMonthTriggerLabel();
+        renderMonthGrid();
+        closeMonthCalendar();
+      });
+      monthGrid.appendChild(btn);
     });
   }
 
-  periodPresetButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const r = computePresetRange(btn.dataset.preset);
-      applyDateRange(r.start, r.end);
-      showToast("Periode diterapkan ✓");
-    });
+  function updateMonthTriggerLabel() {
+    monthTriggerLabel.textContent = `${MONTH_NAMES_FULL_ID[selectedMonthIndex]} ${selectedMonthYear}`;
+  }
+
+  monthPrevBtn.addEventListener("click", () => { monthViewYear--; renderMonthGrid(); });
+  monthNextBtn.addEventListener("click", () => { monthViewYear++; renderMonthGrid(); });
+
+  // Satu listener global untuk menutup popover manapun saat klik di luar area-nya.
+  document.addEventListener("click", (e) => {
+    if (!dayCalendarEl.hidden && !dayPickerWrap.contains(e.target)) closeDayCalendar();
+    if (!weekCalendarEl.hidden && !weekPickerWrap.contains(e.target)) closeWeekCalendar();
+    if (!monthCalendarEl.hidden && !monthPickerWrap.contains(e.target)) closeMonthCalendar();
   });
 
   function initPeriodDefaults() {
-    // Default: dari awal bulan berjalan sampai hari ini — paling relevan
-    // dibuka pertama kali dibanding rentang kosong.
+    populateYearSelect();
+    populateMonthYearSelects(dayMonthSelect, dayYearSelect);
+    populateMonthYearSelects(weekMonthSelect, weekYearSelect);
+
+    dayViewYear = new Date().getFullYear();
+    dayViewMonth = new Date().getMonth();
+    selectedDailyDate = todayISO();
+    renderDayCalendar();
+    updateDayTriggerLabel();
+
+    weekViewYear = new Date().getFullYear();
+    weekViewMonth = new Date().getMonth();
+    renderWeekCalendar();
+
+    monthViewYear = new Date().getFullYear();
+    selectedMonthYear = new Date().getFullYear();
+    selectedMonthIndex = new Date().getMonth();
+    renderMonthGrid();
+    updateMonthTriggerLabel();
+
+    // Default rentang tanggal bebas: dari awal bulan berjalan sampai hari
+    // ini — paling relevan dibanding dibiarkan kosong saat pertama kali
+    // pindah ke opsi "Rentang Tanggal".
     const today = new Date();
-    const y = today.getFullYear();
-    const m = today.getMonth() + 1;
-    rangeStart = `${y}-${pad2(m)}-01`;
+    const ry = today.getFullYear();
+    const rm = today.getMonth() + 1;
+    rangeStart = `${ry}-${pad2(rm)}-01`;
     rangeEnd = todayISO();
     rangeStartInput.value = rangeStart;
     rangeEndInput.value = rangeEnd;
-    updateActivePresetChip();
+
+    periodType = "monthly";
+    periodTypeSelect.value = "monthly";
+    showPeriodField("monthly");
   }
+
+  function populateYearSelect() {
+    const currentYear = new Date().getFullYear();
+    const yearsFromData = transactions.map((t) => Number(t.date.slice(0, 4))).filter((y) => !isNaN(y));
+    const years = new Set([currentYear, ...yearsFromData]);
+    const minYear = Math.min(...years, currentYear - 4);
+    for (let y = currentYear; y >= minYear; y--) years.add(y);
+    const sorted = [...years].sort((a, b) => b - a);
+    const select = periodInputs.yearly;
+    const prevValue = select.value || String(currentYear);
+    select.innerHTML = "";
+    sorted.forEach((y) => {
+      const opt = document.createElement("option");
+      opt.value = String(y);
+      opt.textContent = String(y);
+      select.appendChild(opt);
+    });
+    select.value = sorted.includes(Number(prevValue)) ? prevValue : String(currentYear);
+  }
+
+  // Kalender minggu: grid tanggal gaya kalender biasa. Klik tanggal manapun
+  // menyorot SELURUH baris (minggu) tempat tanggal itu berada. Minggu yang
+  // memuat hari ini otomatis tersorot saat bulan berjalan pertama dibuka.
+  function renderWeekCalendar() {
+    const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
+    weekMonthSelect.value = String(weekViewMonth);
+    weekYearSelect.value = String(weekViewYear);
+
+    const today = new Date();
+    let defaultIndex = 1;
+    if (weekViewYear === today.getFullYear() && weekViewMonth === today.getMonth()) {
+      const todayIso = todayISO();
+      const match = weeks.find((w) => todayIso >= w.start && todayIso <= w.end);
+      if (match) defaultIndex = match.index;
+    }
+    selectedWeekIndex = defaultIndex;
+
+    weekCalendarGrid.innerHTML = "";
+
+    const headerRow = document.createElement("div");
+    headerRow.className = "week-cal-row week-cal-header";
+    DAY_LABELS_ID.forEach((label) => {
+      const span = document.createElement("span");
+      span.className = "week-cal-daylabel";
+      span.textContent = label;
+      headerRow.appendChild(span);
+    });
+    weekCalendarGrid.appendChild(headerRow);
+
+    weeks.forEach((w) => {
+      const row = document.createElement("div");
+      row.className = "week-cal-row is-selectable";
+      row.dataset.weekIndex = String(w.index);
+      const startDate = parseISODate(w.start);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        const iso = toISODate(d);
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "week-cal-cell";
+        if (d.getMonth() !== weekViewMonth) cell.classList.add("is-outside");
+        if (iso === todayISO()) cell.classList.add("is-today");
+        cell.textContent = String(d.getDate());
+        row.appendChild(cell);
+      }
+      row.addEventListener("click", () => {
+        selectedWeekIndex = w.index;
+        highlightSelectedWeek();
+        updateWeekTriggerLabel();
+        closeWeekCalendar();
+      });
+      weekCalendarGrid.appendChild(row);
+    });
+
+    highlightSelectedWeek();
+    updateWeekTriggerLabel();
+  }
+
+  function updateWeekTriggerLabel() {
+    const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
+    const found = weeks.find((w) => w.index === selectedWeekIndex) || weeks[0];
+    const s = parseISODate(found.start);
+    const e = parseISODate(found.end);
+    const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
+    weekTriggerLabel.textContent = sameMonth
+      ? `${s.getDate()}–${e.getDate()} ${MONTH_NAMES_FULL_ID[s.getMonth()]} ${s.getFullYear()}`
+      : `${s.getDate()} ${MONTH_NAMES_ID[s.getMonth()]} – ${e.getDate()} ${MONTH_NAMES_ID[e.getMonth()]} ${e.getFullYear()}`;
+  }
+
+  function highlightSelectedWeek() {
+    weekCalendarGrid.querySelectorAll(".week-cal-row.is-selectable").forEach((row) => {
+      row.classList.toggle("is-selected", Number(row.dataset.weekIndex) === selectedWeekIndex);
+    });
+  }
+
+  function showPeriodField(type) {
+    Object.entries(periodFieldWrappers).forEach(([key, wrapper]) => { wrapper.hidden = key !== type; });
+  }
+
+  periodTypeSelect.addEventListener("change", () => showPeriodField(periodTypeSelect.value));
 
   periodForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    if (!rangeStartInput.value || !rangeEndInput.value) {
-      showToast("Pilih tanggal mulai dan tanggal akhir dahulu.");
-      return;
+    periodType = periodTypeSelect.value;
+
+    if (periodType === "range") {
+      if (!rangeStartInput.value || !rangeEndInput.value) {
+        showToast("Pilih tanggal mulai dan tanggal akhir dahulu.");
+        return;
+      }
+      // Validasi: tanggal mulai tidak boleh setelah tanggal akhir — auto
+      // tukar posisi kalau ternyata kepilih terbalik, daripada menolak.
+      let s = rangeStartInput.value;
+      let e = rangeEndInput.value;
+      if (s > e) { const tmp = s; s = e; e = tmp; }
+      rangeStart = s;
+      rangeEnd = e;
+      rangeStartInput.value = rangeStart;
+      rangeEndInput.value = rangeEnd;
     }
-    applyDateRange(rangeStartInput.value, rangeEndInput.value);
+
+    renderPeriodPanels();
+    renderLaporan();
     showToast("Periode diterapkan ✓");
   });
 
@@ -1072,77 +1358,126 @@
     });
   }
 
-  // Tren di dalam rentang tanggal yang sedang dipilih, dipecah jadi
-  // beberapa "kolom" — granularitasnya menyesuaikan PANJANG rentang secara
-  // otomatis (bukan lagi jenis periode tetap seperti dulu), supaya tetap
-  // terbaca baik untuk rentang pendek (per hari) maupun panjang (per bulan
-  // atau per tahun):
+  // Tren beberapa sub-periode terakhir. Untuk periodType daily/weekly/
+  // monthly/yearly, granularitasnya mengikuti jenis periode aktif (7 hari/
+  // 6 minggu/6 bulan/5 tahun terakhir, mengakhiri di periode yang sedang
+  // dipilih) — persis perilaku aslinya. Untuk periodType "range" (rentang
+  // tanggal bebas), tidak ada "jenis periode" untuk dijadikan acuan, jadi
+  // granularitasnya menyesuaikan PANJANG rentang secara otomatis supaya
+  // tetap terbaca baik untuk rentang pendek (per hari) maupun panjang (per
+  // bulan/tahun), dan dipecah jadi kolom-kolom DI DALAM rentang itu sendiri:
   //  - <= 14 hari   -> per hari
   //  - <= 90 hari   -> per minggu (blok 7 hari sejak tanggal mulai)
   //  - <= ~2 tahun  -> per bulan kalender yang beririsan dengan rentang
   //  - lebih dari itu -> per tahun
-  // Jumlah kolom dibatasi maksimal 24 (ambil yang paling akhir) supaya
-  // grafik tidak terlalu padat/sempit di layar kecil.
+  // (dibatasi maksimal 24 kolom, ambil yang paling akhir, supaya grafik
+  // tidak terlalu padat/sempit di layar kecil).
   function getTrendIntervals() {
-    const start = parseISODate(rangeStart);
-    const end = parseISODate(rangeEnd);
-    const days = Math.round((end - start) / 86400000) + 1;
-    let intervals = [];
-    let granularity = "day";
+    if (periodType === "range") {
+      const start = parseISODate(rangeStart);
+      const end = parseISODate(rangeEnd);
+      const days = Math.round((end - start) / 86400000) + 1;
+      let intervals = [];
+      let granularity = "day";
 
-    if (days <= 14) {
-      granularity = "day";
-      for (let i = 0; i < days; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
+      if (days <= 14) {
+        granularity = "day";
+        for (let i = 0; i < days; i++) {
+          const d = new Date(start);
+          d.setDate(d.getDate() + i);
+          const iso = toISODate(d);
+          intervals.push({ label: String(d.getDate()), start: iso, end: iso });
+        }
+      } else if (days <= 90) {
+        granularity = "week";
+        const cursor = new Date(start);
+        while (cursor <= end) {
+          const chunkStart = new Date(cursor);
+          const chunkEnd = new Date(cursor);
+          chunkEnd.setDate(chunkEnd.getDate() + 6);
+          const actualEnd = chunkEnd > end ? end : chunkEnd;
+          intervals.push({
+            label: `${chunkStart.getDate()}/${chunkStart.getMonth() + 1}`,
+            start: toISODate(chunkStart),
+            end: toISODate(actualEnd),
+          });
+          cursor.setDate(cursor.getDate() + 7);
+        }
+      } else if (days <= 731) {
+        granularity = "month";
+        let y = start.getFullYear();
+        let m = start.getMonth();
+        while (y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth())) {
+          const monthStart = new Date(y, m, 1);
+          const monthEnd = new Date(y, m + 1, 0);
+          const clampedStart = monthStart < start ? start : monthStart;
+          const clampedEnd = monthEnd > end ? end : monthEnd;
+          intervals.push({
+            label: `${MONTH_NAMES_ID[m]} ${y}`,
+            start: toISODate(clampedStart),
+            end: toISODate(clampedEnd),
+          });
+          m++;
+          if (m > 11) { m = 0; y++; }
+        }
+      } else {
+        granularity = "year";
+        for (let y = start.getFullYear(); y <= end.getFullYear(); y++) {
+          const yearStart = new Date(y, 0, 1);
+          const yearEnd = new Date(y, 11, 31);
+          const clampedStart = yearStart < start ? start : yearStart;
+          const clampedEnd = yearEnd > end ? end : yearEnd;
+          intervals.push({ label: String(y), start: toISODate(clampedStart), end: toISODate(clampedEnd) });
+        }
+      }
+
+      if (intervals.length > 24) intervals = intervals.slice(-24);
+      return finalizeTrendIntervals(intervals, granularity);
+    }
+
+    const intervals = [];
+    if (periodType === "daily") {
+      const endDate = parseISODate(selectedDailyDate);
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - i);
         const iso = toISODate(d);
         intervals.push({ label: String(d.getDate()), start: iso, end: iso });
       }
-    } else if (days <= 90) {
-      granularity = "week";
-      const cursor = new Date(start);
-      while (cursor <= end) {
-        const chunkStart = new Date(cursor);
-        const chunkEnd = new Date(cursor);
-        chunkEnd.setDate(chunkEnd.getDate() + 6);
-        const actualEnd = chunkEnd > end ? end : chunkEnd;
-        intervals.push({
-          label: `${chunkStart.getDate()}/${chunkStart.getMonth() + 1}`,
-          start: toISODate(chunkStart),
-          end: toISODate(actualEnd),
-        });
-        cursor.setDate(cursor.getDate() + 7);
+    } else if (periodType === "weekly") {
+      const weeks = getWeeksInMonth(weekViewYear, weekViewMonth);
+      const current = weeks.find((w) => w.index === selectedWeekIndex) || weeks[0];
+      const curStart = parseISODate(current.start);
+      for (let i = 5; i >= 0; i--) {
+        const s = new Date(curStart);
+        s.setDate(s.getDate() - i * 7);
+        const e = new Date(s);
+        e.setDate(e.getDate() + 6);
+        intervals.push({ label: `${s.getDate()}/${s.getMonth() + 1}`, start: toISODate(s), end: toISODate(e) });
       }
-    } else if (days <= 731) {
-      granularity = "month";
-      let y = start.getFullYear();
-      let m = start.getMonth();
-      while (y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth())) {
-        const monthStart = new Date(y, m, 1);
-        const monthEnd = new Date(y, m + 1, 0);
-        const clampedStart = monthStart < start ? start : monthStart;
-        const clampedEnd = monthEnd > end ? end : monthEnd;
+    } else if (periodType === "monthly") {
+      for (let i = 5; i >= 0; i--) {
+        let mm = selectedMonthIndex - i;
+        let yy = selectedMonthYear;
+        while (mm < 0) { mm += 12; yy--; }
+        const lastDay = new Date(yy, mm + 1, 0).getDate();
         intervals.push({
-          label: `${MONTH_NAMES_ID[m]} ${y}`,
-          start: toISODate(clampedStart),
-          end: toISODate(clampedEnd),
+          label: MONTH_NAMES_ID[mm],
+          start: `${yy}-${pad2(mm + 1)}-01`,
+          end: `${yy}-${pad2(mm + 1)}-${pad2(lastDay)}`,
         });
-        m++;
-        if (m > 11) { m = 0; y++; }
       }
     } else {
-      granularity = "year";
-      for (let y = start.getFullYear(); y <= end.getFullYear(); y++) {
-        const yearStart = new Date(y, 0, 1);
-        const yearEnd = new Date(y, 11, 31);
-        const clampedStart = yearStart < start ? start : yearStart;
-        const clampedEnd = yearEnd > end ? end : yearEnd;
-        intervals.push({ label: String(y), start: toISODate(clampedStart), end: toISODate(clampedEnd) });
+      const y = Number(document.getElementById("period-yearly").value) || new Date().getFullYear();
+      for (let i = 4; i >= 0; i--) {
+        const yy = y - i;
+        intervals.push({ label: String(yy), start: `${yy}-01-01`, end: `${yy}-12-31` });
       }
     }
+    return finalizeTrendIntervals(intervals, periodType);
+  }
 
-    if (intervals.length > 24) intervals = intervals.slice(-24);
-
+  function finalizeTrendIntervals(intervals, granularity) {
     const withTotals = intervals.map((iv) => {
       const txs = transactions.filter((t) => t.date >= iv.start && t.date <= iv.end);
       const inc = txs.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
@@ -1154,6 +1489,13 @@
   }
 
   const TREND_SUB_LABELS = {
+    // periodType daily/weekly/monthly/yearly — granularitas tetap, jendela
+    // waktu tetap (N sub-periode terakhir, mengakhiri di periode terpilih).
+    daily: "Surplus/defisit 7 hari terakhir",
+    weekly: "Surplus/defisit 6 minggu terakhir",
+    monthly: "Surplus/defisit 6 bulan terakhir",
+    yearly: "Surplus/defisit 5 tahun terakhir",
+    // periodType "range" — granularitas otomatis DI DALAM rentang terpilih.
     day: "Surplus/defisit per hari pada rentang terpilih",
     week: "Surplus/defisit per minggu pada rentang terpilih",
     month: "Surplus/defisit per bulan pada rentang terpilih",
@@ -1387,6 +1729,7 @@
     try {
       await addTransactionRemote(newTx);
       transactions.push(newTx);
+      populateYearSelect();
 
       const successEl = document.getElementById("form-success");
       successEl.hidden = false;
@@ -2478,6 +2821,7 @@
         rebuildCategoryLookup();
         populateCategories(currentType);
         renderCategoryManageList();
+        populateYearSelect();
         renderDashboard();
         renderHistory();
       }
@@ -2499,6 +2843,7 @@
       rebuildCategoryLookup();
       populateCategories(currentType);
       renderCategoryManageList();
+      populateYearSelect();
       renderDashboard();
       renderHistory();
       saveDataCache(transactions, CATEGORIES);
