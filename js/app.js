@@ -2386,6 +2386,56 @@
   let messagingInstance = null;
   let swRegistration = null;
 
+  /* ---------------- Pemberitahuan "ada pembaruan baru" ----------------
+     Service worker (firebase-messaging-sw.js) sudah dibuat skipWaiting()
+     otomatis begitu versi barunya selesai di-install, jadi begitu
+     navigator.serviceWorker.controller BERGANTI ke worker baru, itu tandanya
+     versi baru sudah siap dipakai. Kalau tab ini sebelumnya SUDAH dikontrol
+     worker versi lama (bukan pemasangan PWA pertama kali), tampilkan banner
+     supaya user bisa klik "Update" untuk reload dan pakai versi terbarunya —
+     bukan reload otomatis diam-diam yang bisa mengganggu saat lagi mengisi
+     form transaksi. */
+  const updateBanner = document.getElementById("update-banner");
+  const updateBannerBtn = document.getElementById("update-banner-btn");
+  const updateBannerDismiss = document.getElementById("update-banner-dismiss");
+  let isReloadingForUpdate = false;
+
+  function showUpdateBanner() {
+    updateBanner.classList.add("is-visible");
+  }
+  function hideUpdateBanner() {
+    updateBanner.classList.remove("is-visible");
+  }
+  if (updateBannerBtn) {
+    updateBannerBtn.addEventListener("click", () => {
+      isReloadingForUpdate = true;
+      window.location.reload();
+    });
+  }
+  if (updateBannerDismiss) {
+    updateBannerDismiss.addEventListener("click", hideUpdateBanner);
+  }
+
+  function initUpdateWatcher() {
+    if (!("serviceWorker" in navigator)) return;
+    const hadControllerBefore = !!navigator.serviceWorker.controller;
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (isReloadingForUpdate) return; // reload yang kita picu sendiri, bukan pembaruan baru
+      if (!hadControllerBefore) return; // pemasangan/aktivasi worker pertama kali, bukan pembaruan
+      showUpdateBanner();
+    });
+
+    // Browser otomatis cek update service worker sesekali, tapi supaya
+    // pembaruan terdeteksi lebih cepat (misal user balik buka tab setelah
+    // lama), cek ulang manual tiap kali tab ini jadi aktif lagi.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && swRegistration) {
+        swRegistration.update().catch(() => {});
+      }
+    });
+  }
+
   function updateNotifButtonLabel() {
     if (!isFirebaseConfigured) {
       notifBtnLabel.textContent = "Notifikasi (belum disetel)";
@@ -2554,6 +2604,7 @@
 
   /* ---------------- Init ---------------- */
   function init() {
+    initUpdateWatcher();
     registerAppServiceWorker();
     const stored = loadStoredUser();
     if (stored && stored.username) {
