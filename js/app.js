@@ -2502,7 +2502,13 @@
     // sama persis.
     if (swRegistration) return swRegistration;
     try {
-      swRegistration = await navigator.serviceWorker.register("firebase-messaging-sw.js");
+      // updateViaCache:"none" — jangan pernah pakai HTTP cache browser buat
+      // file service worker ini sendiri (atau importScripts di dalamnya),
+      // supaya pengecekan versi baru (lewat registration.update()) selalu
+      // benar-benar nanya ke server, bukan kejawab cache lama diam-diam.
+      swRegistration = await navigator.serviceWorker.register("firebase-messaging-sw.js", {
+        updateViaCache: "none",
+      });
       watchForWaitingWorker(swRegistration);
       return swRegistration;
     } catch (err) {

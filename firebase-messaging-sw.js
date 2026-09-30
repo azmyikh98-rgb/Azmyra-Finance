@@ -40,7 +40,7 @@ messaging.onBackgroundMessage((payload) => {
 /* ---------------- PWA: cache app shell untuk mode offline ----------------
    NAIKKAN angka versi ini (v1 -> v2 -> ...) setiap kali kamu ganti isi
    file-file di bawah, supaya pengguna lama otomatis dapat versi terbaru. */
-const CACHE_NAME = "azmyra-finance-v3";
+const CACHE_NAME = "azmyra-finance-v4";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -103,7 +103,16 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    fetch(event.request)
+    // { cache: "no-store" } ini WAJIB, bukan sekadar tambahan — tanpa ini,
+    // fetch() di bawah masih bisa diam-diam dijawab oleh HTTP cache bawaan
+    // BROWSER (lapisan yang beda dari Cache Storage kita sendiri di atas),
+    // karena GitHub Pages (Fastly) ngirim header Cache-Control: max-age
+    // untuk semua file statis. Tanpa cache:"no-store", kode ini KELIHATANNYA
+    // "coba jaringan dulu" tapi PRAKTIKNYA bisa tetap menjawab pakai salinan
+    // lama dari cache HTTP browser selama beberapa menit — persis gejala
+    // "cache masih tertinggal" yang dilaporkan, walau strateginya sudah
+    // "network-first" di kode.
+    fetch(event.request, { cache: "no-store" })
       .then((res) => {
         if (res && res.status === 200) {
           const resClone = res.clone();
