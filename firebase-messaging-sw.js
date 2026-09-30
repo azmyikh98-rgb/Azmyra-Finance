@@ -40,7 +40,7 @@ messaging.onBackgroundMessage((payload) => {
 /* ---------------- PWA: cache app shell untuk mode offline ----------------
    NAIKKAN angka versi ini (v1 -> v2 -> ...) setiap kali kamu ganti isi
    file-file di bawah, supaya pengguna lama otomatis dapat versi terbaru. */
-const CACHE_NAME = "azmyra-finance-v1";
+const CACHE_NAME = "azmyra-finance-v2";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -71,6 +71,14 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+/* Dulu strateginya "cache dulu, update belakangan" (cache lama langsung
+   ditampilkan, versi baru cuma disimpan buat load BERIKUTNYA) — makanya
+   setelah deploy, app shell (html/css/js) terasa "nyangkut" di versi lama
+   dan baru sungguhan ter-update di reload kedua. Sekarang dibalik jadi
+   "coba jaringan dulu": kalau online, SELALU pakai file terbaru dari
+   jaringan (dan diam-diam disimpan lagi ke cache buat cadangan offline).
+   Cache versi lama cuma dipakai kalau requestnya benar-benar gagal
+   (offline / tidak ada koneksi) — bukan lagi jadi jawaban default. */
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   // Cuma tangani request ke situs sendiri (app shell: html/css/js/ikon).
@@ -80,17 +88,18 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const networkFetch = fetch(event.request)
-        .then((res) => {
-          if (res && res.status === 200) {
-            const resClone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || networkFetch;
-    })
+    fetch(event.request)
+      .then((res) => {
+        if (res && res.status === 200) {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+        }
+        return res;
+      })
+      .catch(() =>
+        // Jaringan gagal (offline, dsb.) — baru di sini fallback ke cache
+        // terakhir yang tersimpan, supaya app tetap bisa dibuka offline.
+        caches.match(event.request).then((cached) => cached || Response.error())
+      )
   );
 });
