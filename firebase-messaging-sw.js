@@ -40,7 +40,7 @@ messaging.onBackgroundMessage((payload) => {
 /* ---------------- PWA: cache app shell untuk mode offline ----------------
    NAIKKAN angka versi ini (v1 -> v2 -> ...) setiap kali kamu ganti isi
    file-file di bawah, supaya pengguna lama otomatis dapat versi terbaru. */
-const CACHE_NAME = "azmyra-finance-v4";
+const CACHE_NAME = "azmyra-finance-v5";
 const APP_SHELL = [
   "./",
   "index.html",
