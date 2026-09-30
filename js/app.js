@@ -960,8 +960,60 @@
 
     renderPeriodPanels();
     renderLaporan();
+    closePeriodModal();
     showToast("Periode diterapkan ✓");
   });
+
+  /* ---- Modal "Lihat Periode" ----
+     Form pemilih periode (kalender harian/mingguan/bulanan/tahunan + rentang
+     tanggal) dulunya panel besar yang selalu tampil & dipindah-pindah antar
+     halaman (movePeriodPanel). Sekarang jadi satu modal global yang dibuka
+     dari tombol ringkasan periode di Dashboard maupun Laporan — supaya tidak
+     memakan banyak ruang di layar. Elemen form-nya sendiri (id, listener,
+     state) tidak berubah sama sekali, cuma dibungkus modal & tidak lagi
+     dipindah-pindah lewat appendChild.
+     Periode yang sudah diterapkan tetap tersimpan di variabel JS (periodType,
+     rangeStart, rangeEnd) selama sesi aplikasi berjalan — tidak pernah
+     direset otomatis kecuali app benar-benar dimuat ulang dari awal
+     (initPeriodDefaults() hanya dipanggil sekali saat login/masuk app). */
+  const periodModal = document.getElementById("period-modal");
+  const periodModalClose = document.getElementById("period-modal-close");
+  const periodSummaryTriggerDashboard = document.getElementById("period-summary-trigger-dashboard");
+  const periodSummaryTriggerLaporan = document.getElementById("period-summary-trigger-laporan");
+
+  function openPeriodModal() {
+    periodModal.hidden = false;
+  }
+  function closePeriodModal() {
+    periodModal.hidden = true;
+  }
+  if (periodSummaryTriggerDashboard) periodSummaryTriggerDashboard.addEventListener("click", openPeriodModal);
+  if (periodSummaryTriggerLaporan) periodSummaryTriggerLaporan.addEventListener("click", openPeriodModal);
+  periodModalClose.addEventListener("click", closePeriodModal);
+  periodModal.addEventListener("click", (e) => {
+    if (e.target === periodModal) closePeriodModal();
+  });
+
+  const PERIOD_TYPE_LABELS = {
+    daily: "Harian",
+    weekly: "Mingguan",
+    monthly: "Bulanan",
+    yearly: "Tahunan",
+    range: "Rentang Tanggal",
+  };
+
+  // Teks ringkas yang ditampilkan di tombol pemicu (bukan lagi form besar
+  // yang selalu tampil) — menggabungkan jenis periode ("Bulanan") dengan
+  // label periode yang sudah diformat ("September 2026").
+  function updatePeriodSummary() {
+    const range = getPeriodRange();
+    const label = formatPeriodLabel(range);
+    const summaryText = `${PERIOD_TYPE_LABELS[periodType] || ""} · ${label}`;
+    const dashEl = document.getElementById("period-summary-value-dashboard");
+    const lapEl = document.getElementById("period-summary-value-laporan");
+    if (dashEl) dashEl.textContent = summaryText;
+    if (lapEl) lapEl.textContent = summaryText;
+  }
 
   /* ---------------- Helpers umum ---------------- */
   function formatRupiah(n) {
@@ -1030,22 +1082,6 @@
     if (route === "tambah") {
       const dateInput = document.getElementById("tx-date");
       if (!dateInput.value) dateInput.value = todayISO();
-    }
-    movePeriodPanel(route);
-  }
-
-  // Panel "Lihat Periode" (dengan kalender harian/mingguan/bulanan/tahunan)
-  // dipakai bersama oleh Dashboard & Laporan — bukan diduplikasi, tapi
-  // benar-benar dipindah (appendChild) antar halaman saat berganti route.
-  // Karena elemennya sama persis (bukan salinan), semua id, event listener,
-  // dan state pilihan periode otomatis tetap sama & selalu sinkron di kedua
-  // halaman, tanpa perlu menulis ulang logikanya dua kali.
-  function movePeriodPanel(route) {
-    const panel = document.getElementById("period-panel");
-    if (route === "laporan") {
-      document.getElementById("laporan-period-slot").appendChild(panel);
-    } else {
-      document.getElementById("dashboard-period-slot").insertAdjacentElement("afterend", panel);
     }
   }
 
@@ -1125,6 +1161,7 @@
     const label = formatPeriodLabel(range);
     const periodTx = filterByPeriod(transactions, range);
 
+    updatePeriodSummary();
     document.getElementById("period-label-cashflow").textContent = label;
     document.getElementById("period-label-category").textContent = `Diurutkan dari terbesar — ${label}`;
     document.getElementById("period-label-tx").textContent = `Transaksi — ${label}`;
@@ -1286,7 +1323,7 @@
     const label = formatPeriodLabel(range);
     const periodTx = filterByPeriod(transactions, range);
 
-    document.getElementById("rep-period-label").textContent = `Menampilkan periode: ${label}`;
+    updatePeriodSummary();
 
     const periodIncome = periodTx.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
     const periodExpense = periodTx.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);

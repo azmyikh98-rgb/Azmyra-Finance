@@ -716,16 +716,35 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
 .user-dropdown-item--danger svg{ color: var(--brick); }
 .user-dropdown-item--danger:hover{ background: var(--brick-light); }
 
-/* ---------------- Period filter (dashboard) ---------------- */
-.period-panel{ padding-bottom: 24px; }
-/* #period-panel dipindah-pindah (appendChild) antar #dashboard-period-slot
-   dan #laporan-period-slot oleh movePeriodPanel() di app.js — begitu
-   pindah, dia jadi "anak terakhir" dari slot itu, lalu kena aturan
-   .panel:last-child{margin-bottom:0} secara tidak sengaja (persis pola
-   bug yang sama seperti di .stat-row dan .grid-2). Dikunci lewat ID
-   (spesifisitas lebih tinggi dari .panel:last-child) supaya jaraknya ke
-   elemen berikutnya selalu konsisten di halaman manapun dia berada. */
-#period-panel{ margin-bottom: var(--stack-gap); }
+/* ---------------- Period filter (dashboard & laporan) ---------------- */
+/* Form pemilih periode sekarang tinggal di dalam #period-modal (lihat
+   ".modal-card--period" di bawah) supaya tidak memakan banyak ruang di
+   layar. Yang selalu tampil di halaman utama cuma tombol ringkas ini,
+   menunjukkan periode yang sedang diterapkan (mis. "Bulanan · September
+   2026") dan membuka modal saat diklik. */
+.period-summary-trigger{
+  display:flex; align-items:center; gap:12px; width:100%;
+  background:#fff; border:1px solid var(--line); border-radius: var(--radius-lg);
+  padding:14px 18px; margin-bottom: var(--stack-gap); cursor:pointer;
+  text-align:left; font-family:inherit; box-shadow: var(--shadow-sm);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.period-summary-trigger:hover{ border-color: var(--sage); box-shadow: var(--shadow-md); }
+.period-summary-trigger .field-icon{ color: var(--sage); }
+.period-summary-text{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.period-summary-title{ font-size:11.5px; font-weight:700; color: var(--moss); text-transform:uppercase; letter-spacing:.02em; }
+.period-summary-value{
+  font-size:14.5px; font-weight:700; color: var(--pine);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.period-summary-action{
+  flex-shrink:0; font-size:13px; font-weight:700; color: var(--sage);
+  padding:6px 12px; border-radius:999px; background: var(--mist);
+}
+
+.modal-card--period{ max-width:520px; }
+.modal-card--period .panel-sub{ margin-top:-10px; margin-bottom:20px; }
+
 .period-bar{ display:flex; align-items:flex-end; gap: var(--stack-gap); flex-wrap:wrap; margin:0; }
 .period-field{ display:flex; flex-direction:column; gap:7px; min-width:170px; }
 
