@@ -295,6 +295,34 @@
         </form>
       </div>
 
+      <div class="stat-row" id="dash-cashflow-row">
+        <div class="panel stat-card">
+          <span class="stat-card-label">Pemasukan (Periode Ini)</span>
+          <span class="stat-card-value" id="dash-income">Rp 0</span>
+        </div>
+        <div class="panel stat-card">
+          <span class="stat-card-label">Pengeluaran (Periode Ini)</span>
+          <span class="stat-card-value" id="dash-expense">Rp 0</span>
+        </div>
+        <div class="panel stat-card" id="dash-net-card">
+          <span class="stat-card-label" id="dash-net-label">Selisih</span>
+          <span class="stat-card-value" id="dash-net">Rp 0</span>
+          <span class="stat-compare" id="dash-net-compare"></span>
+        </div>
+      </div>
+
+      <div class="panel" id="dash-insight-panel">
+        <div class="panel-head">
+          <h2>Status &amp; Sorotan</h2>
+          <p class="panel-sub">Ringkasan cepat kondisi keuangan periode ini</p>
+        </div>
+        <div class="insight-row">
+          <span class="health-badge" id="dash-health-badge">—</span>
+          <p class="health-desc" id="dash-health-desc">Belum ada data untuk periode ini.</p>
+        </div>
+        <div class="insight-spikes" id="dash-spike-callout" hidden></div>
+      </div>
+
       <div class="grid-2">
         <div class="panel">
           <div class="panel-head">
@@ -326,6 +354,18 @@
             <!-- filled by JS -->
           </div>
           <p class="empty-hint" id="category-empty" hidden>Belum ada pengeluaran pada periode ini.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Tren Arus Kas</h2>
+          <p class="panel-sub" id="trend-sub-mini">Surplus/defisit pada rentang terpilih</p>
+        </div>
+        <div class="trend-chart trend-chart--mini" id="trend-chart-mini"></div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--fern)"></i>Surplus</span>
+          <span><i class="dot" style="background:var(--brick)"></i>Defisit</span>
         </div>
       </div>
 

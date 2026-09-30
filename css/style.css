@@ -241,8 +241,27 @@ img, svg{ display: block; }
 .stat-card{ display:flex; flex-direction:column; gap:6px; min-width:0; width:100%; }
 .stat-card-label{ font-size:12.5px; font-weight:700; color: var(--moss); text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .stat-card-value{ font-family:'Newsreader', serif; font-size:25px; font-weight:600; color: var(--pine); font-variant-numeric: tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#rep-net-card.is-surplus .stat-card-value{ color: var(--fern-dk); }
-#rep-net-card.is-defisit .stat-card-value{ color: var(--brick); }
+/* Class-based (bukan lagi terikat ke ID #rep-net-card) supaya bisa dipakai
+   ulang oleh kartu selisih manapun — termasuk #dash-net-card di Dashboard. */
+.stat-card.is-surplus .stat-card-value{ color: var(--fern-dk); }
+.stat-card.is-defisit .stat-card-value{ color: var(--brick); }
+.stat-compare{
+  display:inline-flex; align-items:center; font-size:12px; font-weight:700;
+  margin-top:2px;
+}
+.stat-compare.is-up{ color: var(--fern-dk); }
+.stat-compare.is-down{ color: var(--brick); }
+.stat-compare.is-neutral{ color: var(--ink-3); font-weight:600; }
+
+.insight-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+.insight-row .health-badge{ margin-bottom:0; flex-shrink:0; }
+.insight-row .health-desc{ margin:0; flex:1; min-width:200px; }
+.insight-spikes{ display:flex; flex-direction:column; gap:8px; }
+.insight-spikes > div{
+  font-size:13.5px; color:#8A6516; background: var(--honey-light);
+  padding:10px 14px; border-radius:10px; line-height:1.5;
+}
+
 @media (max-width:860px){
   .stat-row:not(.stat-row--wallet){ grid-template-columns:repeat(2, 1fr); }
   /* Item ke-3 (Selisih) melebar penuh 1 baris sendiri di bawah, supaya
@@ -277,6 +296,12 @@ img, svg{ display: block; }
 .trend-bar.positive{ background: var(--fern); bottom:50%; border-radius:4px 4px 0 0; }
 .trend-bar.negative{ background: var(--brick); top:50%; border-radius:0 0 4px 4px; }
 .trend-label{ margin-top:8px; font-size:11px; color: var(--ink-3); text-align:center; white-space:nowrap; }
+
+/* Versi ringkas grafik tren untuk Dashboard (dibanding versi penuh di
+   Laporan) — sama persis datanya, cuma lebih pendek supaya tidak makan
+   banyak tempat di ringkasan utama. */
+.trend-chart--mini{ height:120px; }
+.trend-chart--mini .trend-bar-track{ height:90px; }
 
 .grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap: var(--stack-gap); margin-bottom: var(--stack-gap); align-items:stretch; }
 .grid-2 .panel{ min-height: 340px; min-width:0; margin-bottom:0; }

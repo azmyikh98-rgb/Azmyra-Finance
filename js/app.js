@@ -495,6 +495,95 @@
     return list.filter((t) => t.date >= range.start && t.date <= range.end);
   }
 
+  // Rentang "periode sebelumnya": sama panjangnya (jumlah hari) dengan
+  // rentang yang sedang dipilih, langsung bersambung sebelum tanggal
+  // mulainya — dipakai untuk badge perbandingan "naik/turun X% dari
+  // periode sebelumnya" di Dashboard.
+  function getPreviousRange(range) {
+    const s = parseISODate(range.start);
+    const e = parseISODate(range.end);
+    const lengthDays = Math.round((e - s) / 86400000) + 1;
+    const prevEnd = new Date(s);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - (lengthDays - 1));
+    return { start: toISODate(prevStart), end: toISODate(prevEnd) };
+  }
+
+  // Status kesehatan keuangan sederhana berdasarkan savings rate — dipakai
+  // bersama oleh kartu "Kesehatan Keuangan" di Laporan DAN badge ringkas di
+  // Dashboard, supaya logikanya konsisten di satu tempat saja.
+  function computeHealthStatus(periodIncome, periodExpense) {
+    if (periodIncome <= 0) {
+      return {
+        status: periodExpense > 0 ? "Belum Ada Pemasukan" : "Belum Ada Data",
+        cls: "health-neutral",
+        text: periodExpense > 0
+          ? "Belum ada pemasukan tercatat pada periode ini, jadi rasio kesehatan belum bisa dihitung."
+          : "Belum ada transaksi pada periode ini.",
+      };
+    }
+    const savingsRate = (periodIncome - periodExpense) / periodIncome;
+    if (savingsRate >= 0.2) {
+      return {
+        status: "Sehat",
+        cls: "health-good",
+        text: `Kamu menyisihkan sekitar ${Math.round(savingsRate * 100)}% dari pemasukan pada periode ini.`,
+      };
+    }
+    if (savingsRate >= 0) {
+      return {
+        status: "Cukup Sehat",
+        cls: "health-warn",
+        text: `Kamu menyisihkan sekitar ${Math.round(savingsRate * 100)}% dari pemasukan — masih aman, tapi ruang tabungannya tipis.`,
+      };
+    }
+    return {
+      status: "Perlu Perhatian",
+      cls: "health-bad",
+      text: `Pengeluaran melebihi pemasukan sekitar ${Math.round(Math.abs(savingsRate) * 100)}% pada periode ini.`,
+    };
+  }
+
+  function applyHealthStatus(badgeEl, descEl, periodIncome, periodExpense) {
+    const r = computeHealthStatus(periodIncome, periodExpense);
+    badgeEl.className = "health-badge " + r.cls;
+    badgeEl.textContent = r.status;
+    if (descEl) descEl.textContent = r.text;
+  }
+
+  // Kategori pengeluaran yang naik signifikan dibanding periode sebelumnya
+  // (>=20% dari nominal sebelumnya yang cukup berarti, atau kategori yang
+  // sama sekali baru muncul dengan nominal lumayan) — insight otomatis
+  // untuk Dashboard, supaya user tidak perlu bandingkan manual sendiri.
+  function computeCategorySpikes(periodTx, prevTx) {
+    const curTotals = {};
+    periodTx.filter((t) => t.type === "expense").forEach((t) => {
+      curTotals[t.category] = (curTotals[t.category] || 0) + Number(t.amount);
+    });
+    const prevTotals = {};
+    prevTx.filter((t) => t.type === "expense").forEach((t) => {
+      prevTotals[t.category] = (prevTotals[t.category] || 0) + Number(t.amount);
+    });
+
+    const spikes = Object.entries(curTotals).map(([catId, curVal]) => {
+      const prevVal = prevTotals[catId] || 0;
+      const diff = curVal - prevVal;
+      const pct = prevVal > 0 ? (diff / prevVal) * 100 : null; // null = kategori baru
+      return { catId, curVal, prevVal, diff, pct };
+    });
+
+    const significant = spikes.filter((s) => {
+      if (s.diff <= 0) return false;
+      // Ambang batas sengaja dijaga supaya tidak berisik oleh nominal kecil.
+      if (s.pct !== null) return s.pct >= 20 && s.prevVal >= 10000;
+      return s.curVal >= 50000;
+    });
+
+    significant.sort((a, b) => b.diff - a.diff);
+    return significant.slice(0, 2);
+  }
+
   /* ---------------- Setup kontrol periode (filter rentang tanggal) ---------------- */
   const periodForm = document.getElementById("period-form");
   const rangeStartInput = document.getElementById("range-start-input");
@@ -756,7 +845,65 @@
     document.getElementById("recent-empty-text").textContent = `Belum ada transaksi pada ${label}.`;
 
     const totalIncomeAllTime = transactions.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+    const periodIncome = periodTx.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
     const periodExpense = periodTx.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+
+    /* ---- Ringkasan arus kas periode ini + perbandingan periode sebelumnya ---- */
+    const net = periodIncome - periodExpense;
+    document.getElementById("dash-income").textContent = formatRupiah(periodIncome);
+    document.getElementById("dash-expense").textContent = formatRupiah(periodExpense);
+    document.getElementById("dash-net").textContent = formatRupiah(Math.abs(net));
+    document.getElementById("dash-net-label").textContent = net >= 0 ? "Surplus" : "Defisit";
+    const dashNetCard = document.getElementById("dash-net-card");
+    dashNetCard.classList.toggle("is-surplus", net >= 0);
+    dashNetCard.classList.toggle("is-defisit", net < 0);
+
+    const prevRange = getPreviousRange(range);
+    const prevTx = filterByPeriod(transactions, prevRange);
+    const prevIncome = prevTx.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+    const prevExpense = prevTx.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+    const prevNet = prevIncome - prevExpense;
+
+    const compareEl = document.getElementById("dash-net-compare");
+    compareEl.classList.remove("is-up", "is-down", "is-neutral");
+    if (prevIncome === 0 && prevExpense === 0) {
+      compareEl.textContent = "Tidak ada data periode sebelumnya untuk dibandingkan";
+      compareEl.classList.add("is-neutral");
+    } else {
+      const diff = net - prevNet;
+      const isUp = diff >= 0;
+      compareEl.classList.add(isUp ? "is-up" : "is-down");
+      const arrow = isUp ? "▲" : "▼";
+      if (Math.abs(prevNet) > 0) {
+        const pct = Math.round(Math.abs(diff / prevNet) * 100);
+        compareEl.textContent = `${arrow} ${pct}% dari periode sebelumnya`;
+      } else {
+        compareEl.textContent = isUp ? `${arrow} Lebih baik dari periode sebelumnya` : `${arrow} Lebih rendah dari periode sebelumnya`;
+      }
+    }
+
+    /* ---- Status kesehatan keuangan (ringkas) ---- */
+    applyHealthStatus(
+      document.getElementById("dash-health-badge"),
+      document.getElementById("dash-health-desc"),
+      periodIncome,
+      periodExpense
+    );
+
+    /* ---- Sorotan kategori yang naik signifikan ---- */
+    const spikeEl = document.getElementById("dash-spike-callout");
+    const spikes = computeCategorySpikes(periodTx, prevTx);
+    if (spikes.length === 0) {
+      spikeEl.hidden = true;
+      spikeEl.innerHTML = "";
+    } else {
+      spikeEl.hidden = false;
+      spikeEl.innerHTML = spikes.map((s) => {
+        const cat = CATEGORY_LOOKUP[s.catId] || { label: s.catId, icon: "•" };
+        const pctText = s.pct !== null ? `naik ${Math.round(s.pct)}%` : "kategori baru";
+        return `<div>🔺 ${cat.icon} <strong>${escapeHtml(cat.label)}</strong> ${pctText} dari periode sebelumnya (+${formatRupiah(s.diff)})</div>`;
+      }).join("");
+    }
 
     const ringEl = document.getElementById("ring-progress");
     const captionEl = document.getElementById("ring-caption");
@@ -875,37 +1022,12 @@
   }
 
   function renderHealthCard(periodIncome, periodExpense) {
-    const badge = document.getElementById("health-badge");
-    const desc = document.getElementById("health-desc");
-    badge.className = "health-badge";
-
-    if (periodIncome <= 0) {
-      badge.textContent = periodExpense > 0 ? "Belum Ada Pemasukan" : "Belum Ada Data";
-      badge.classList.add("health-neutral");
-      desc.textContent = periodExpense > 0
-        ? "Belum ada pemasukan tercatat pada periode ini, jadi rasio kesehatan belum bisa dihitung."
-        : "Belum ada transaksi pada periode ini.";
-      return;
-    }
-
-    const savingsRate = (periodIncome - periodExpense) / periodIncome;
-    let status, cls, text;
-    if (savingsRate >= 0.2) {
-      status = "Sehat";
-      cls = "health-good";
-      text = `Kamu menyisihkan sekitar ${Math.round(savingsRate * 100)}% dari pemasukan pada periode ini.`;
-    } else if (savingsRate >= 0) {
-      status = "Cukup Sehat";
-      cls = "health-warn";
-      text = `Kamu menyisihkan sekitar ${Math.round(savingsRate * 100)}% dari pemasukan — masih aman, tapi ruang tabungannya tipis.`;
-    } else {
-      status = "Perlu Perhatian";
-      cls = "health-bad";
-      text = `Pengeluaran melebihi pemasukan sekitar ${Math.round(Math.abs(savingsRate) * 100)}% pada periode ini.`;
-    }
-    badge.textContent = status;
-    badge.classList.add(cls);
-    desc.textContent = text;
+    applyHealthStatus(
+      document.getElementById("health-badge"),
+      document.getElementById("health-desc"),
+      periodIncome,
+      periodExpense
+    );
   }
 
   function renderReportCategories(periodTx) {
@@ -1031,18 +1153,26 @@
     return withTotals;
   }
 
-  function renderTrendChart() {
-    const intervals = getTrendIntervals();
-    const subLabel = {
-      day: "Surplus/defisit per hari pada rentang terpilih",
-      week: "Surplus/defisit per minggu pada rentang terpilih",
-      month: "Surplus/defisit per bulan pada rentang terpilih",
-      year: "Surplus/defisit per tahun pada rentang terpilih",
-    };
-    document.getElementById("trend-sub").textContent = subLabel[intervals.granularity] || "Surplus/defisit beberapa periode terakhir";
+  const TREND_SUB_LABELS = {
+    day: "Surplus/defisit per hari pada rentang terpilih",
+    week: "Surplus/defisit per minggu pada rentang terpilih",
+    month: "Surplus/defisit per bulan pada rentang terpilih",
+    year: "Surplus/defisit per tahun pada rentang terpilih",
+  };
+
+  // Merender kolom tren ke dalam container manapun — dipakai untuk grafik
+  // penuh di Laporan (#trend-chart) MAUPUN versi ringkas di Dashboard
+  // (#trend-chart-mini), keduanya dari data yang sama persis (rentang
+  // tanggal yang sedang dipilih), tanpa duplikasi logika komputasi.
+  function renderTrendInto(intervals, containerId, subLabelId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const subLabelEl = document.getElementById(subLabelId);
+    if (subLabelEl) {
+      subLabelEl.textContent = TREND_SUB_LABELS[intervals.granularity] || "Surplus/defisit beberapa periode terakhir";
+    }
 
     const maxAbs = Math.max(1, ...intervals.map((iv) => Math.abs(iv.net)));
-    const container = document.getElementById("trend-chart");
     container.innerHTML = "";
     intervals.forEach((iv) => {
       const isPositive = iv.net >= 0;
@@ -1059,6 +1189,12 @@
       `;
       container.appendChild(col);
     });
+  }
+
+  function renderTrendChart() {
+    const intervals = getTrendIntervals();
+    renderTrendInto(intervals, "trend-chart", "trend-sub");
+    renderTrendInto(intervals, "trend-chart-mini", "trend-sub-mini");
   }
 
   function renderTxListItem(t) {
