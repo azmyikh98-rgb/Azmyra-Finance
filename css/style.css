@@ -874,6 +874,7 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
   white-space:nowrap; transition: filter .15s ease;
 }
 .update-banner-btn:hover{ filter:brightness(1.08); }
+.update-banner-btn:disabled{ opacity:.6; cursor:default; }
 @media (max-width: 640px){
   .update-banner{ bottom: calc(76px + 24px); left:14px; right:14px; }
 }

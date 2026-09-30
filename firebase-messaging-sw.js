@@ -40,7 +40,7 @@ messaging.onBackgroundMessage((payload) => {
 /* ---------------- PWA: cache app shell untuk mode offline ----------------
    NAIKKAN angka versi ini (v1 -> v2 -> ...) setiap kali kamu ganti isi
    file-file di bawah, supaya pengguna lama otomatis dapat versi terbaru. */
-const CACHE_NAME = "azmyra-finance-v2";
+const CACHE_NAME = "azmyra-finance-v3";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -59,7 +59,22 @@ self.addEventListener("install", (event) => {
       .then((cache) => cache.addAll(APP_SHELL))
       .catch(() => {}) // jangan sampai gagal cache 1 file membatalkan install
   );
-  self.skipWaiting();
+  // TIDAK lagi self.skipWaiting() otomatis di sini. Dulu ini dipanggil
+  // langsung, jadi worker versi baru langsung aktif walau tab lama masih
+  // kebuka — akibatnya banner "ada pembaruan" bisa muncul lagi setelah
+  // user klik Update (karena proses aktivasi versi baru itu masih
+  // berlangsung tepat saat halaman reload, lalu "selesai" sendiri di
+  // reload berikutnya dan dianggap pembaruan baru lagi).
+  // Sekarang worker baru sengaja DIBIARKAN "menunggu" (waiting) sampai
+  // ada perintah eksplisit dari halaman (lewat tombol "Update" di
+  // js/app.js, yang kirim pesan SKIP_WAITING di bawah) — jadi aktivasinya
+  // cuma terjadi SEKALI, persis saat user benar-benar klik Update.
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {
