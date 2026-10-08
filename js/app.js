@@ -2651,10 +2651,30 @@
       applyPeriodFromDefaultSettingNow();
       renderDashboard();
       saveDataCache(transactions, CATEGORIES, SETTINGS);
-      const successEl = document.getElementById("settings-save-success");
-      successEl.hidden = false;
-      setTimeout(() => (successEl.hidden = true), 2200);
-      showToast("Pengaturan berhasil disimpan ✓");
+
+      // Verifikasi round-trip: kalau Apps Script yang TERPASANG (versi yang
+      // sedang di-deploy sebagai Web App) masih versi LAMA — belum punya
+      // key pengaturan tertentu di DEFAULT_SETTINGS-nya — backend akan diam
+      // -diam MENOLAK key yang tidak dikenal (lihat saveSettingsPartial di
+      // Code.gs), jadi responsnya tidak akan memuat key itu sama sekali dan
+      // SETTINGS di sini otomatis jatuh balik ke nilai default. Tanpa
+      // pengecekan ini, pengguna akan melihat toast "berhasil disimpan"
+      // padahal sebagian pengaturannya sama sekali tidak tersimpan — jadi
+      // dicek di sini supaya kegagalan itu KELIHATAN, bukan diam-diam.
+      const mismatchedKeys = Object.keys(partial).filter(
+        (key) => String(SETTINGS[key]) !== String(partial[key])
+      );
+      if (mismatchedKeys.length > 0) {
+        console.warn("Pengaturan tidak ter-roundtrip dari server:", mismatchedKeys, { dikirim: partial, diterima: SETTINGS });
+        showToast(
+          "Sebagian pengaturan belum benar-benar tersimpan di server (kemungkinan Apps Script belum di-deploy ke versi terbaru). Deploy ulang Code.gs, lalu simpan lagi."
+        );
+      } else {
+        const successEl = document.getElementById("settings-save-success");
+        successEl.hidden = false;
+        setTimeout(() => (successEl.hidden = true), 2200);
+        showToast("Pengaturan berhasil disimpan ✓");
+      }
     } catch (err) {
       console.error(err);
       showToast("Gagal menyimpan pengaturan. Cek koneksi internetmu, lalu coba lagi.");
