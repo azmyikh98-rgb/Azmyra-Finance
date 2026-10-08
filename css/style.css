@@ -1008,8 +1008,42 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
   border-radius:10px; margin:-6px 0 18px; font-weight:600; line-height:1.5;
 }
 
-/* ---------------- Halaman Pengaturan ---------------- */
-.settings-tabs{ margin-bottom:24px; }
+/* ---------------- Halaman Pengaturan ----------------
+   Pengaturan dulunya memakai tab berdampingan (chip-group) dengan panel
+   yang saling tumpang-tindih di satu halaman. Sekarang jadi daftar menu
+   (list) di halaman utama Pengaturan — klik salah satu item memindahkan
+   tampilan ke sub-halamannya sendiri (lihat openSettingsSubpage() /
+   closeSettingsSubpage() di app.js), mirip pola menu Pengaturan pada
+   aplikasi mobile umumnya. */
+.settings-menu-list{ display:flex; flex-direction:column; gap:10px; }
+.settings-menu-item{
+  display:flex; align-items:center; gap:14px; width:100%;
+  background:#fff; border:1px solid var(--line); border-radius: var(--radius-lg);
+  padding:16px 18px; cursor:pointer; text-align:left; font-family:inherit;
+  box-shadow: var(--shadow-sm); transition: border-color .15s ease, box-shadow .15s ease;
+}
+.settings-menu-item:hover{ border-color: var(--fern); box-shadow: var(--shadow-md); }
+.settings-menu-icon{
+  width:42px; height:42px; border-radius:12px; background: var(--fern-light);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.settings-menu-icon-svg{ width:20px; height:20px; color: var(--fern-dk); }
+.settings-menu-text{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.settings-menu-title{ font-size:14.5px; font-weight:700; color: var(--pine); }
+.settings-menu-sub{ font-size:12.5px; color: var(--ink-3); }
+.settings-menu-chevron{ width:18px; height:18px; color: var(--ink-3); flex-shrink:0; }
+
+/* Sub-halaman Pengaturan: tombol kembali + judul di atas konten panel
+   aslinya (yang tidak berubah sama sekali — cuma dipindah dari "tab" jadi
+   "halaman tersendiri", lihat markup di index.html). */
+.settings-back-btn{
+  display:inline-flex; align-items:center; gap:7px; background:transparent; border:none;
+  color: var(--fern-dk); font-weight:700; font-size:13.5px; font-family:inherit;
+  cursor:pointer; padding:8px 0; margin-bottom:10px;
+}
+.settings-back-btn svg{ width:18px; height:18px; flex-shrink:0; }
+.settings-back-btn:hover{ color: var(--pine); }
+.settings-subpage-title{ font-size:19px; font-weight:600; margin:0 0 16px; }
 
 .checkbox-field{
   display:flex; align-items:flex-start; gap:9px; margin:14px 0 0;

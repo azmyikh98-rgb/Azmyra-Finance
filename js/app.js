@@ -1381,6 +1381,10 @@
       const dateInput = document.getElementById("tx-date");
       if (!dateInput.value) dateInput.value = todayISO();
     }
+    // Setiap kali masuk (lagi) ke halaman Pengaturan, selalu mulai dari
+    // daftar menu-nya — bukan nyangkut di sub-halaman terakhir yang
+    // sempat dibuka sebelum pindah ke halaman lain.
+    if (route === "pengaturan") closeSettingsSubpage();
   }
 
   document.querySelectorAll("[data-route]").forEach((el) => {
@@ -2465,26 +2469,56 @@
     return li;
   }
 
-  /* ---------------- Pengaturan: tab Anggaran & Tabungan ---------------- */
-  const settingsTabButtons = document.querySelectorAll("#settings-tabs .settings-tab");
-  const settingsPanels = {
-    anggaran: document.getElementById("settings-panel-anggaran"),
-    kategori: document.getElementById("settings-panel-kategori"),
-    notifikasi: document.getElementById("settings-panel-notifikasi"),
+  /* ---------------- Pengaturan: daftar menu + sub-halaman ----------------
+     Dulunya "Anggaran & Tabungan" / "Kategori" / "Notifikasi" adalah tab
+     berdampingan (chip) di satu halaman yang sama. Sekarang halaman utama
+     Pengaturan cuma menampilkan DAFTAR MENU (settings-menu-list); klik satu
+     item menyembunyikan daftar itu dan menampilkan sub-halamannya sendiri
+     (settings-subpage-*), dengan tombol "Kembali" untuk balik ke daftar —
+     "Filter Default" yang dulu jadi satu panel di dalam "Anggaran &
+     Tabungan" sekarang juga jadi menu/sub-halaman tersendiri. */
+  const settingsMenuList = document.getElementById("settings-menu-list");
+  const settingsMenuItems = document.querySelectorAll("#settings-menu-list .settings-menu-item");
+  const settingsSubpages = {
+    anggaran: document.getElementById("settings-subpage-anggaran"),
+    "filter-default": document.getElementById("settings-subpage-filter-default"),
+    kategori: document.getElementById("settings-subpage-kategori"),
+    notifikasi: document.getElementById("settings-subpage-notifikasi"),
   };
-  settingsTabButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const tab = btn.dataset.settingstab;
-      settingsTabButtons.forEach((b) => {
-        const active = b === btn;
-        b.classList.toggle("is-active", active);
-        b.setAttribute("aria-selected", String(active));
-      });
-      Object.keys(settingsPanels).forEach((key) => {
-        if (settingsPanels[key]) settingsPanels[key].hidden = key !== tab;
-      });
+
+  function openSettingsSubpage(key) {
+    if (!settingsSubpages[key]) return;
+    settingsMenuList.hidden = true;
+    Object.keys(settingsSubpages).forEach((k) => {
+      if (settingsSubpages[k]) settingsSubpages[k].hidden = k !== key;
     });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function closeSettingsSubpage() {
+    Object.values(settingsSubpages).forEach((el) => { if (el) el.hidden = true; });
+    settingsMenuList.hidden = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  settingsMenuItems.forEach((btn) => {
+    btn.addEventListener("click", () => openSettingsSubpage(btn.dataset.settingsmenu));
   });
+  document.querySelectorAll("#page-pengaturan [data-settingsback]").forEach((btn) => {
+    btn.addEventListener("click", closeSettingsSubpage);
+  });
+
+  // Tautan pintas "Atur anggaran →" di kartu anggaran Dashboard — dulu
+  // cukup pindah route ke Pengaturan karena tab "Anggaran & Tabungan"
+  // selalu aktif secara default. Sekarang Pengaturan dibuka ke daftar
+  // menu dulu (lihat goToRoute()), jadi di sini perlu ditambahkan: setelah
+  // route-nya pindah ke Pengaturan, langsung buka juga sub-halaman
+  // "Anggaran & Tabungan"-nya — supaya tautan pintas ini tetap langsung
+  // mengantar ke form anggaran, bukan berhenti di daftar menu.
+  const budgetSettingsShortcut = document.getElementById("budget-settings-shortcut");
+  if (budgetSettingsShortcut) {
+    budgetSettingsShortcut.addEventListener("click", () => openSettingsSubpage("anggaran"));
+  }
 
   const setPeriodStartDaySelect = document.getElementById("set-period-start-day");
   for (let day = 1; day <= 31; day++) {
@@ -2612,8 +2646,15 @@
     }
   }
 
-  const settingsSaveBtn = document.getElementById("settings-save-btn");
-  settingsSaveBtn.addEventListener("click", async () => {
+  // "Simpan Pengaturan" sekarang muncul di DUA sub-halaman berbeda (Anggaran
+  // & Tabungan, dan Filter Default yang baru dipisah darinya) — tapi
+  // keduanya tetap menyimpan SATU partial yang sama, berisi semua field
+  // pengaturan (field dari sub-halaman yang sedang tidak dibuka tetap ada
+  // di DOM, cuma disembunyikan, jadi nilainya tetap terbaca dengan benar
+  // di sini). Jadi logikanya cukup satu fungsi, dipanggil dari tombol
+  // manapun yang diklik — supaya tidak ada logika simpan yang terduplikasi
+  // dan berisiko tidak sinkron.
+  async function handleSaveSettings(triggerBtn, successElId) {
     if (!isConfigured) {
       showToast("Aplikasi belum terhubung ke Google Spreadsheet.");
       return;
@@ -2637,9 +2678,9 @@
       dailyLimitManualCycleStart: settingsDailyMode === "manual" ? getBudgetCycleRange(todayISO()).start : SETTINGS.dailyLimitManualCycleStart || "",
     };
 
-    const originalLabel = settingsSaveBtn.textContent;
-    settingsSaveBtn.disabled = true;
-    settingsSaveBtn.textContent = "Menyimpan…";
+    const originalLabel = triggerBtn.textContent;
+    triggerBtn.disabled = true;
+    triggerBtn.textContent = "Menyimpan…";
     try {
       SETTINGS = await updateSettingsRemote(partial);
       renderSettingsForm();
@@ -2669,19 +2710,29 @@
           "Sebagian pengaturan belum benar-benar tersimpan di server (kemungkinan Apps Script belum di-deploy ke versi terbaru). Deploy ulang Code.gs, lalu simpan lagi."
         );
       } else {
-        const successEl = document.getElementById("settings-save-success");
-        successEl.hidden = false;
-        setTimeout(() => (successEl.hidden = true), 2200);
+        const successEl = document.getElementById(successElId);
+        if (successEl) {
+          successEl.hidden = false;
+          setTimeout(() => (successEl.hidden = true), 2200);
+        }
         showToast("Pengaturan berhasil disimpan ✓");
       }
     } catch (err) {
       console.error(err);
       showToast("Gagal menyimpan pengaturan. Cek koneksi internetmu, lalu coba lagi.");
     } finally {
-      settingsSaveBtn.disabled = false;
-      settingsSaveBtn.textContent = originalLabel;
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = originalLabel;
     }
-  });
+  }
+
+  const settingsSaveBtn = document.getElementById("settings-save-btn");
+  settingsSaveBtn.addEventListener("click", () => handleSaveSettings(settingsSaveBtn, "settings-save-success"));
+
+  const settingsSaveBtnFilterDefault = document.getElementById("settings-save-btn-filterdefault");
+  settingsSaveBtnFilterDefault.addEventListener("click", () =>
+    handleSaveSettings(settingsSaveBtnFilterDefault, "settings-save-success-filterdefault")
+  );
 
   /* ---------------- Riwayat (kalender) ---------------- */
   const searchInput = document.getElementById("search-tx");

@@ -273,7 +273,7 @@
             <div class="budget-progress-fill" id="budget-daily-used-bar" style="width:0%"></div>
           </div>
           <p class="budget-progress-caption" id="budget-daily-used-text">Terpakai hari ini: Rp 0</p>
-          <a class="budget-card-link" data-route="pengaturan">Atur anggaran →</a>
+          <a class="budget-card-link" id="budget-settings-shortcut" data-route="pengaturan">Atur anggaran →</a>
         </div>
         <div class="panel budget-card">
           <span class="stat-card-label">Tabungan Periode Ini</span>
@@ -535,14 +535,62 @@
         </div>
       </div>
 
-      <div class="chip-group settings-tabs" id="settings-tabs" role="tablist" aria-label="Bagian pengaturan">
-        <button class="chip settings-tab is-active" data-settingstab="anggaran" role="tab" aria-selected="true" type="button">Anggaran &amp; Tabungan</button>
-        <button class="chip settings-tab" data-settingstab="kategori" role="tab" aria-selected="false" type="button">Kategori</button>
-        <button class="chip settings-tab" data-settingstab="notifikasi" role="tab" aria-selected="false" type="button">Notifikasi</button>
+      <!-- Daftar menu Pengaturan — tampil sebagai list; klik salah satu pindah
+           ke halaman tersendiri untuk bagian itu (bukan tab berdampingan). -->
+      <div class="settings-menu-list" id="settings-menu-list">
+        <button type="button" class="settings-menu-item" data-settingsmenu="anggaran">
+          <span class="settings-menu-icon">
+            <svg class="settings-menu-icon-svg" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M3 10h18" stroke="currentColor" stroke-width="1.6"/><path d="M15.5 14.5h2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7 7V5.5A2.5 2.5 0 0 1 9.5 3h5A2.5 2.5 0 0 1 17 5.5V7" stroke="currentColor" stroke-width="1.6"/></svg>
+          </span>
+          <span class="settings-menu-text">
+            <span class="settings-menu-title">Anggaran &amp; Tabungan</span>
+            <span class="settings-menu-sub">Siklus anggaran, target tabungan, batas harian</span>
+          </span>
+          <svg class="settings-menu-chevron" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+        <button type="button" class="settings-menu-item" data-settingsmenu="filter-default">
+          <span class="settings-menu-icon">
+            <svg class="settings-menu-icon-svg" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </span>
+          <span class="settings-menu-text">
+            <span class="settings-menu-title">Filter Default</span>
+            <span class="settings-menu-sub">Tampilan default &quot;Lihat Periode&quot; di Dashboard &amp; Laporan</span>
+          </span>
+          <svg class="settings-menu-chevron" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+        <button type="button" class="settings-menu-item" data-settingsmenu="kategori">
+          <span class="settings-menu-icon">
+            <svg class="settings-menu-icon-svg" viewBox="0 0 24 24" fill="none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="settings-menu-text">
+            <span class="settings-menu-title">Kategori</span>
+            <span class="settings-menu-sub">Kelola kategori pemasukan &amp; pengeluaran</span>
+          </span>
+          <svg class="settings-menu-chevron" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+        <button type="button" class="settings-menu-item" data-settingsmenu="notifikasi">
+          <span class="settings-menu-icon">
+            <svg class="settings-menu-icon-svg" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="settings-menu-text">
+            <span class="settings-menu-title">Notifikasi</span>
+            <span class="settings-menu-sub">Notifikasi push setiap ada transaksi baru</span>
+          </span>
+          <svg class="settings-menu-chevron" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
 
-      <!-- Sub-bagian: Anggaran & Tabungan -->
-      <div class="settings-panel is-active" id="settings-panel-anggaran">
+      <!-- Sub-halaman: Anggaran & Tabungan -->
+      <div class="settings-subpage" id="settings-subpage-anggaran" hidden>
+        <button type="button" class="settings-back-btn" data-settingsback>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Pengaturan
+        </button>
+        <h2 class="settings-subpage-title">Anggaran &amp; Tabungan</h2>
+
         <div class="panel">
           <div class="panel-head">
             <h2>Periode Pemasukan</h2>
@@ -553,28 +601,6 @@
             <select id="set-period-start-day"></select>
           </div>
           <p class="field-hint" id="set-period-hint">Siklus berjalan dari tanggal ini sampai sehari sebelum tanggal yang sama di bulan berikutnya.</p>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Filter Periode Default</h2>
-            <p class="panel-sub">Atur tampilan default "Lihat Periode" di Dashboard &amp; Laporan setiap kali dibuka — ini terpisah dari siklus anggaran (Periode Pemasukan) di atas.</p>
-          </div>
-          <div class="field">
-            <label id="set-default-periodtype-label">Jenis Periode Default</label>
-            <div class="chip-group" id="set-default-periodtype" role="group" aria-label="Jenis periode default">
-              <button class="chip is-active" data-defaultperiodtype="monthly" type="button">Bulanan (Kalender)</button>
-              <button class="chip" data-defaultperiodtype="daily" type="button">Harian</button>
-              <button class="chip" data-defaultperiodtype="weekly" type="button">Mingguan</button>
-              <button class="chip" data-defaultperiodtype="yearly" type="button">Tahunan</button>
-              <button class="chip" data-defaultperiodtype="range_cycle" type="button">Rentang Tanggal Berulang</button>
-            </div>
-          </div>
-          <div class="field" id="set-default-range-field" hidden>
-            <label for="set-default-periodstartday">Rentang berulang mulai setiap tanggal</label>
-            <select id="set-default-periodstartday"></select>
-            <p class="field-hint" id="set-default-range-hint">Contoh: pilih tanggal 25 → defaultnya otomatis jadi "25 bulan ini – 24 bulan berikutnya", selalu mengikuti tanggal hari ini saat dibuka.</p>
-          </div>
         </div>
 
         <div class="panel">
@@ -629,8 +655,48 @@
         <p class="form-success" id="settings-save-success" role="status" hidden>Pengaturan berhasil disimpan ✓</p>
       </div>
 
-      <!-- Sub-bagian: Kelola Kategori (dipindah dari menu tersendiri) -->
-      <div class="settings-panel" id="settings-panel-kategori" hidden>
+      <!-- Sub-halaman: Filter Default (dipisah dari Anggaran & Tabungan menjadi menu sendiri) -->
+      <div class="settings-subpage" id="settings-subpage-filter-default" hidden>
+        <button type="button" class="settings-back-btn" data-settingsback>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Pengaturan
+        </button>
+        <h2 class="settings-subpage-title">Filter Default</h2>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Filter Periode Default</h2>
+            <p class="panel-sub">Atur tampilan default "Lihat Periode" di Dashboard &amp; Laporan setiap kali dibuka — ini terpisah dari siklus anggaran (Periode Pemasukan) di menu Anggaran &amp; Tabungan.</p>
+          </div>
+          <div class="field">
+            <label id="set-default-periodtype-label">Jenis Periode Default</label>
+            <div class="chip-group" id="set-default-periodtype" role="group" aria-label="Jenis periode default">
+              <button class="chip is-active" data-defaultperiodtype="monthly" type="button">Bulanan (Kalender)</button>
+              <button class="chip" data-defaultperiodtype="daily" type="button">Harian</button>
+              <button class="chip" data-defaultperiodtype="weekly" type="button">Mingguan</button>
+              <button class="chip" data-defaultperiodtype="yearly" type="button">Tahunan</button>
+              <button class="chip" data-defaultperiodtype="range_cycle" type="button">Rentang Tanggal Berulang</button>
+            </div>
+          </div>
+          <div class="field" id="set-default-range-field" hidden>
+            <label for="set-default-periodstartday">Rentang berulang mulai setiap tanggal</label>
+            <select id="set-default-periodstartday"></select>
+            <p class="field-hint" id="set-default-range-hint">Contoh: pilih tanggal 25 → defaultnya otomatis jadi "25 bulan ini – 24 bulan berikutnya", selalu mengikuti tanggal hari ini saat dibuka.</p>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn--primary btn--block" id="settings-save-btn-filterdefault">Simpan Pengaturan</button>
+        <p class="form-success" id="settings-save-success-filterdefault" role="status" hidden>Pengaturan berhasil disimpan ✓</p>
+      </div>
+
+      <!-- Sub-halaman: Kelola Kategori -->
+      <div class="settings-subpage" id="settings-subpage-kategori" hidden>
+        <button type="button" class="settings-back-btn" data-settingsback>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Pengaturan
+        </button>
+        <h2 class="settings-subpage-title">Kategori</h2>
+
         <div class="panel">
           <div class="panel-head panel-head--row">
             <div>
@@ -665,8 +731,14 @@
         </div>
       </div>
 
-      <!-- Sub-bagian: Notifikasi (dipindah dari menu profil) -->
-      <div class="settings-panel" id="settings-panel-notifikasi" hidden>
+      <!-- Sub-halaman: Notifikasi -->
+      <div class="settings-subpage" id="settings-subpage-notifikasi" hidden>
+        <button type="button" class="settings-back-btn" data-settingsback>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Pengaturan
+        </button>
+        <h2 class="settings-subpage-title">Notifikasi</h2>
+
         <div class="panel">
           <div class="panel-head">
             <h2>Notifikasi Push</h2>
