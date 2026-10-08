@@ -41,6 +41,11 @@
      dsb) di semua halaman — satu angka, dipakai di mana-mana, supaya
      jaraknya selalu konsisten dan tidak renggang. */
   --stack-gap: 16px;
+  /* Tinggi topbar mobile — SATU angka tetap dipakai di mana-mana (tinggi
+     .topbar sendiri, padding-top konten di bawahnya, posisi dropdown akun)
+     supaya header mobile dijamin selalu sama persis di semua halaman,
+     tidak tergantung konten atau perilaku "position:sticky" bawaan browser. */
+  --topbar-h: 62px;
 }
 
 *, *::before, *::after{ box-sizing: border-box; }
@@ -132,13 +137,21 @@ img, svg{ display: block; }
 }
 
 /* ---------------- Topbar (mobile) ---------------- */
+/* position:fixed (bukan sticky) + height tetap (--topbar-h) dipakai dengan
+   sengaja supaya ukurannya BENAR-BENAR tetap sama di semua halaman, tidak
+   terpengaruh konten, scroll, atau keyboard HP yang muncul (position:sticky
+   dikenal suka berperilaku tidak konsisten di WebKit/iOS saat dikombinasi
+   dengan overflow-x:hidden pada .app-shell seperti di sini). Karena fixed
+   mengeluarkan elemen ini dari alur normal, <main> diberi padding-top
+   sebesar --topbar-h di media query mobile supaya konten tidak ketutupan. */
 .topbar{
   display:none;
   align-items:center; justify-content:space-between;
-  padding: 14px 18px;
+  padding: 0 18px;
+  height: var(--topbar-h);
   background: var(--pine-dk);
   color:#fff;
-  position: sticky; top:0; z-index: 30;
+  position: fixed; top:0; left:0; right:0; z-index: 30;
   min-width: 0;
 }
 .topbar-brand{ display:flex; align-items:center; gap:10px; min-width:0; }
@@ -933,8 +946,12 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
   .sidebar-rail{ display:none; }
   .topbar{ display:flex; }
   .bottom-nav{ display:grid; }
-  .main{ padding: 20px 18px calc(48px + 76px); }
-  .user-dropdown{ position:fixed; top:62px; left:auto; right:16px; bottom:auto; width:230px; }
+  /* Padding-top ditambah --topbar-h karena .topbar sekarang position:fixed
+     (dikeluarkan dari alur normal) — tanpa ini, konten halaman akan
+     ketutupan topbar. Nilai 20px sisanya tetap sama seperti sebelumnya,
+     cuma sekarang ditambahkan eksplisit, bukan didapat otomatis dari flow. */
+  .main{ padding: calc(var(--topbar-h) + 20px) 18px calc(48px + 76px); }
+  .user-dropdown{ position:fixed; top: var(--topbar-h); left:auto; right:16px; bottom:auto; width:230px; }
 
   /* Pemasukan/Pengeluaran di kartu saldo dipaksa tetap satu baris
      (kanan-kiri), bukan ditumpuk — gap & fontnya diperkecil lagi
