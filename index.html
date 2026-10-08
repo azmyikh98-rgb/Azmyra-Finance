@@ -419,13 +419,13 @@
                 <span class="amount-prefix">Rp</span>
                 <input type="text" inputmode="numeric" id="tx-amount" name="amount" placeholder="0" required autocomplete="off" />
               </div>
-              <p class="field-error" id="err-amount" hidden>Masukkan jumlah yang valid, ya.</p>
-              <p class="field-hint field-hint--warning" id="budget-warning-hint" hidden></p>
             </div>
+            <p class="field-error" id="err-amount" hidden>Masukkan jumlah yang valid, ya.</p>
+            <p class="field-hint field-hint--warning" id="budget-warning-hint" hidden></p>
 
             <div class="field" id="field-source">
               <label for="tx-source" id="field-source-label">Sumber Dana</label>
-              <select id="tx-source" class="select-compact">
+              <select id="tx-source">
                 <option value="cash">💵 Cash</option>
                 <option value="rekening" selected>🏦 Rekening</option>
               </select>
@@ -598,7 +598,7 @@
           </div>
           <div class="field">
             <label for="set-period-start-day">Siklus anggaran mulai setiap tanggal</label>
-            <select id="set-period-start-day" class="select-compact"></select>
+            <select id="set-period-start-day"></select>
           </div>
           <p class="field-hint" id="set-period-hint">Siklus berjalan dari tanggal ini sampai sehari sebelum tanggal yang sama di bulan berikutnya.</p>
         </div>
@@ -637,16 +637,18 @@
             </div>
           </div>
           <p class="field-hint" id="set-daily-auto-hint">Batas harian otomatis dihitung dari sisa anggaran (pemasukan − tabungan − pengeluaran siklus ini) dibagi sisa hari pada siklus berjalan.</p>
-          <div class="field" id="set-daily-manual-field" hidden>
-            <label for="set-daily-manual-value">Batas Harian Manual</label>
-            <div class="amount-input">
-              <span class="amount-prefix">Rp</span>
-              <input type="text" inputmode="numeric" id="set-daily-manual-value" placeholder="0" autocomplete="off" />
+          <div id="set-daily-manual-field" hidden>
+            <div class="field">
+              <label for="set-daily-manual-value">Batas Harian Manual</label>
+              <div class="amount-input">
+                <span class="amount-prefix">Rp</span>
+                <input type="text" inputmode="numeric" id="set-daily-manual-value" placeholder="0" autocomplete="off" />
+              </div>
+              <label class="checkbox-field" for="set-daily-always-manual">
+                <input type="checkbox" id="set-daily-always-manual" />
+                <span>Selalu pakai manual (jangan kembali otomatis saat siklus baru mulai)</span>
+              </label>
             </div>
-            <label class="checkbox-field" for="set-daily-always-manual">
-              <input type="checkbox" id="set-daily-always-manual" />
-              <span>Selalu pakai manual (jangan kembali otomatis saat siklus baru mulai)</span>
-            </label>
             <p class="field-hint field-hint--warning" id="set-daily-manual-stale-hint" hidden>Nilai manual ini tersimpan dari siklus sebelumnya dan belum aktif untuk siklus yang berjalan sekarang. Klik "Simpan Pengaturan" untuk mengaktifkannya lagi mulai siklus ini.</p>
           </div>
         </div>
@@ -678,9 +680,11 @@
               <button class="chip" data-defaultperiodtype="range_cycle" type="button">Rentang Tanggal Berulang</button>
             </div>
           </div>
-          <div class="field" id="set-default-range-field" hidden>
-            <label for="set-default-periodstartday">Rentang berulang mulai setiap tanggal</label>
-            <select id="set-default-periodstartday" class="select-compact"></select>
+          <div id="set-default-range-field" hidden>
+            <div class="field">
+              <label for="set-default-periodstartday">Rentang berulang mulai setiap tanggal</label>
+              <select id="set-default-periodstartday"></select>
+            </div>
             <p class="field-hint" id="set-default-range-hint">Contoh: pilih tanggal 25 → defaultnya otomatis jadi "25 bulan ini – 24 bulan berikutnya", selalu mengikuti tanggal hari ini saat dibuka.</p>
           </div>
         </div>
@@ -1057,7 +1061,7 @@
       </div>
       <div class="field" id="edit-field-source">
         <label for="edit-tx-source" id="edit-field-source-label">Sumber Dana</label>
-        <select id="edit-tx-source" class="select-compact">
+        <select id="edit-tx-source">
           <option value="cash">💵 Cash</option>
           <option value="rekening" selected>🏦 Rekening</option>
         </select>
