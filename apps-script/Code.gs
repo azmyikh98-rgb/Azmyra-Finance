@@ -21,6 +21,12 @@ const DEFAULT_SETTINGS = {
   dailyLimitManualValue: 0,
   dailyLimitManualCycleStart: "", // tanggal mulai siklus saat nilai manual di-set (ISO yyyy-MM-dd)
   dailyLimitAlwaysManual: false,
+  // Default tampilan "Lihat Periode" di Dashboard & Laporan saat app baru
+  // dibuka — SENGAJA terpisah dari periodStartDay (siklus anggaran) di atas,
+  // karena "periode yang ingin dilihat" dan "siklus anggaran berjalan" bisa
+  // saja berbeda kebutuhannya bagi pengguna.
+  defaultPeriodType: "monthly", // "daily" | "weekly" | "monthly" | "yearly" | "range_cycle"
+  defaultPeriodStartDay: 1, // dipakai hanya kalau defaultPeriodType === "range_cycle" (1-31)
 };
 
 const DEFAULT_CATEGORIES_INCOME = [

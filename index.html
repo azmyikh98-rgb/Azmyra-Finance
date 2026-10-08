@@ -557,6 +557,28 @@
 
         <div class="panel">
           <div class="panel-head">
+            <h2>Filter Periode Default</h2>
+            <p class="panel-sub">Atur tampilan default "Lihat Periode" di Dashboard &amp; Laporan setiap kali dibuka — ini terpisah dari siklus anggaran (Periode Pemasukan) di atas.</p>
+          </div>
+          <div class="field">
+            <label id="set-default-periodtype-label">Jenis Periode Default</label>
+            <div class="chip-group" id="set-default-periodtype" role="group" aria-label="Jenis periode default">
+              <button class="chip is-active" data-defaultperiodtype="monthly" type="button">Bulanan (Kalender)</button>
+              <button class="chip" data-defaultperiodtype="daily" type="button">Harian</button>
+              <button class="chip" data-defaultperiodtype="weekly" type="button">Mingguan</button>
+              <button class="chip" data-defaultperiodtype="yearly" type="button">Tahunan</button>
+              <button class="chip" data-defaultperiodtype="range_cycle" type="button">Rentang Tanggal Berulang</button>
+            </div>
+          </div>
+          <div class="field" id="set-default-range-field" hidden>
+            <label for="set-default-periodstartday">Rentang berulang mulai setiap tanggal</label>
+            <select id="set-default-periodstartday"></select>
+            <p class="field-hint" id="set-default-range-hint">Contoh: pilih tanggal 25 → defaultnya otomatis jadi "25 bulan ini – 24 bulan berikutnya", selalu mengikuti tanggal hari ini saat dibuka.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
             <h2>Target Tabungan</h2>
             <p class="panel-sub">Sisihkan sebagian pemasukan per siklus agar pengeluaran harian otomatis terkontrol.</p>
           </div>

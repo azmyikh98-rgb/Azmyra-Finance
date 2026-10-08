@@ -309,6 +309,10 @@
     dailyLimitManualValue: 0,
     dailyLimitManualCycleStart: "",
     dailyLimitAlwaysManual: false,
+    // Default tampilan "Lihat Periode" (Dashboard & Laporan) saat app baru
+    // dibuka — terpisah dari periodStartDay (siklus anggaran) di atas.
+    defaultPeriodType: "monthly", // "daily" | "weekly" | "monthly" | "yearly" | "range_cycle"
+    defaultPeriodStartDay: 1, // dipakai hanya kalau defaultPeriodType === "range_cycle"
   };
   let SETTINGS = { ...DEFAULT_SETTINGS };
 
@@ -663,13 +667,19 @@
     return Math.min(Math.max(1, day), lastDay);
   }
 
-  function getBudgetCycleRange(refISO) {
+  // Dibuat generik (menerima startDay sebagai parameter, bukan selalu baca
+  // SETTINGS.periodStartDay) supaya logika "rentang bulanan berulang
+  // berdasarkan tanggal mulai" ini bisa dipakai ulang oleh fitur LAIN yang
+  // butuh pola serupa — misalnya default "Lihat Periode" (lihat
+  // getCycleRangeForStartDay dipakai di applyDefaultPeriodFromSettings) —
+  // tanpa ikut tercampur dengan siklus anggaran itu sendiri.
+  function getCycleRangeForStartDay(startDay, refISO) {
     const ref = parseISODate(refISO);
-    const startDay = Math.min(Math.max(Number(SETTINGS.periodStartDay) || 1, 1), 31);
+    const clampedStartDay = Math.min(Math.max(Number(startDay) || 1, 1), 31);
     const y = ref.getFullYear();
     const m = ref.getMonth();
     const d = ref.getDate();
-    const thisMonthStartDay = clampDayToMonth(y, m, startDay);
+    const thisMonthStartDay = clampDayToMonth(y, m, clampedStartDay);
 
     let cycleStartY = y;
     let cycleStartM = m;
@@ -678,18 +688,22 @@
       cycleStartM = m - 1;
       if (cycleStartM < 0) { cycleStartM = 11; cycleStartY--; }
     }
-    const cycleStartD = clampDayToMonth(cycleStartY, cycleStartM, startDay);
+    const cycleStartD = clampDayToMonth(cycleStartY, cycleStartM, clampedStartDay);
     const cycleStart = new Date(cycleStartY, cycleStartM, cycleStartD);
 
     let nextY = cycleStartY;
     let nextM = cycleStartM + 1;
     if (nextM > 11) { nextM = 0; nextY++; }
-    const nextStartD = clampDayToMonth(nextY, nextM, startDay);
+    const nextStartD = clampDayToMonth(nextY, nextM, clampedStartDay);
     const nextStart = new Date(nextY, nextM, nextStartD);
     const cycleEnd = new Date(nextStart);
     cycleEnd.setDate(cycleEnd.getDate() - 1);
 
     return { start: toISODate(cycleStart), end: toISODate(cycleEnd) };
+  }
+
+  function getBudgetCycleRange(refISO) {
+    return getCycleRangeForStartDay(SETTINGS.periodStartDay, refISO);
   }
 
   // Dirangkum satu tempat (dipakai oleh kartu Dashboard, peringatan di
@@ -1081,6 +1095,44 @@
     periodType = "monthly";
     periodTypeSelect.value = "monthly";
     showPeriodField("monthly");
+  }
+
+  // Diterapkan TEPAT SEKALI per sesi aplikasi — begitu SETTINGS pertama
+  // kali berhasil terisi nilai sungguhan (dari cache ATAU dari server,
+  // mana yang lebih dulu datang), supaya "Lihat Periode" langsung terbuka
+  // sesuai default yang diatur pengguna di Pengaturan → Anggaran & Tabungan
+  // → "Filter Periode Default". Dipagari dengan flag supaya refresh data
+  // berikutnya (manual atau otomatis) TIDAK mereset-reset periode yang
+  // sedang sengaja dilihat pengguna saat itu — persis seperti
+  // initPeriodDefaults() yang juga hanya dipanggil sekali saat masuk app.
+  let periodDefaultsApplied = false;
+  function applyDefaultPeriodFromSettings() {
+    if (periodDefaultsApplied) return;
+    periodDefaultsApplied = true;
+    applyPeriodFromDefaultSettingNow();
+  }
+
+  // Logika penerapannya dipisah dari flag sekali-jalan di atas, supaya bisa
+  // dipanggil ULANG secara sengaja oleh tombol "Simpan Pengaturan" (begitu
+  // pengguna mengubah default-nya, langsung terlihat efeknya saat ini juga
+  // — tidak perlu menunggu reload app).
+  function applyPeriodFromDefaultSettingNow() {
+    const mode = SETTINGS.defaultPeriodType || "monthly";
+    if (mode === "range_cycle") {
+      const startDay = Math.min(Math.max(Number(SETTINGS.defaultPeriodStartDay) || 1, 1), 31);
+      const range = getCycleRangeForStartDay(startDay, todayISO());
+      rangeStart = range.start;
+      rangeEnd = range.end;
+      rangeStartInput.value = rangeStart;
+      rangeEndInput.value = rangeEnd;
+      periodType = "range";
+    } else if (mode === "daily" || mode === "weekly" || mode === "monthly" || mode === "yearly") {
+      periodType = mode;
+    } else {
+      periodType = "monthly";
+    }
+    periodTypeSelect.value = periodType;
+    showPeriodField(periodType);
   }
 
   function populateYearSelect() {
@@ -2443,6 +2495,28 @@
     setPeriodStartDaySelect.appendChild(opt);
   }
 
+  // ---- Filter Periode Default (default "Lihat Periode" di Dashboard/Laporan) ----
+  const setDefaultPeriodTypeButtons = document.querySelectorAll("#set-default-periodtype .chip");
+  const setDefaultRangeField = document.getElementById("set-default-range-field");
+  const setDefaultPeriodStartDaySelect = document.getElementById("set-default-periodstartday");
+  let settingsDefaultPeriodType = "monthly";
+
+  for (let day = 1; day <= 31; day++) {
+    const opt = document.createElement("option");
+    opt.value = String(day);
+    opt.textContent = `Tanggal ${day}`;
+    setDefaultPeriodStartDaySelect.appendChild(opt);
+  }
+
+  function setSettingsDefaultPeriodType(type) {
+    settingsDefaultPeriodType = type;
+    setDefaultPeriodTypeButtons.forEach((b) => b.classList.toggle("is-active", b.dataset.defaultperiodtype === type));
+    setDefaultRangeField.hidden = type !== "range_cycle";
+  }
+  setDefaultPeriodTypeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => setSettingsDefaultPeriodType(btn.dataset.defaultperiodtype));
+  });
+
   const setSavingsTypeButtons = document.querySelectorAll("#set-savings-type .chip");
   const setSavingsValueInput = document.getElementById("set-savings-value");
   const setSavingsValueLabel = document.getElementById("set-savings-value-label");
@@ -2506,6 +2580,11 @@
     if (!setPeriodStartDaySelect) return;
     setPeriodStartDaySelect.value = String(Math.min(Math.max(Number(SETTINGS.periodStartDay) || 1, 1), 31));
 
+    setSettingsDefaultPeriodType(SETTINGS.defaultPeriodType || "monthly");
+    setDefaultPeriodStartDaySelect.value = String(
+      Math.min(Math.max(Number(SETTINGS.defaultPeriodStartDay) || 1, 1), 31)
+    );
+
     setSettingsSavingsType(SETTINGS.savingsTargetType === "percent" ? "percent" : "amount");
     const savingsVal = Number(SETTINGS.savingsTargetValue) || 0;
     setSavingsValueInput.value = savingsVal
@@ -2545,6 +2624,8 @@
 
     const partial = {
       periodStartDay: Number(setPeriodStartDaySelect.value) || 1,
+      defaultPeriodType: settingsDefaultPeriodType,
+      defaultPeriodStartDay: Number(setDefaultPeriodStartDaySelect.value) || 1,
       savingsTargetType: settingsSavingsType,
       savingsTargetValue: settingsSavingsType === "percent" ? Math.min(100, savingsRaw) : savingsRaw,
       dailyLimitMode: settingsDailyMode,
@@ -2563,6 +2644,11 @@
     try {
       SETTINGS = await updateSettingsRemote(partial);
       renderSettingsForm();
+      // Langsung terapkan juga ke "Lihat Periode" yang sedang aktif
+      // sekarang — supaya efeknya kelihatan seketika, tidak perlu
+      // menunggu app dimuat ulang (flag sekali-jalannya tetap tidak
+      // disentuh, jadi urutan ini aman dipanggil berkali-kali).
+      applyPeriodFromDefaultSettingNow();
       renderDashboard();
       saveDataCache(transactions, CATEGORIES, SETTINGS);
       const successEl = document.getElementById("settings-save-success");
@@ -3289,6 +3375,7 @@
         transactions = cached.transactions;
         CATEGORIES = cached.categories;
         if (cached.settings) SETTINGS = { ...DEFAULT_SETTINGS, ...cached.settings };
+        applyDefaultPeriodFromSettings();
         rebuildCategoryLookup();
         populateCategories(currentType);
         renderCategoryManageList();
@@ -3313,6 +3400,7 @@
       transactions = result.transactions;
       CATEGORIES = result.categories;
       SETTINGS = { ...DEFAULT_SETTINGS, ...(result.settings || {}) };
+      applyDefaultPeriodFromSettings();
       rebuildCategoryLookup();
       populateCategories(currentType);
       renderCategoryManageList();
