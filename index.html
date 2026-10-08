@@ -425,7 +425,7 @@
 
             <div class="field" id="field-source">
               <label for="tx-source" id="field-source-label">Sumber Dana</label>
-              <select id="tx-source">
+              <select id="tx-source" class="select-compact">
                 <option value="cash">💵 Cash</option>
                 <option value="rekening" selected>🏦 Rekening</option>
               </select>
@@ -598,7 +598,7 @@
           </div>
           <div class="field">
             <label for="set-period-start-day">Siklus anggaran mulai setiap tanggal</label>
-            <select id="set-period-start-day"></select>
+            <select id="set-period-start-day" class="select-compact"></select>
           </div>
           <p class="field-hint" id="set-period-hint">Siklus berjalan dari tanggal ini sampai sehari sebelum tanggal yang sama di bulan berikutnya.</p>
         </div>
@@ -680,7 +680,7 @@
           </div>
           <div class="field" id="set-default-range-field" hidden>
             <label for="set-default-periodstartday">Rentang berulang mulai setiap tanggal</label>
-            <select id="set-default-periodstartday"></select>
+            <select id="set-default-periodstartday" class="select-compact"></select>
             <p class="field-hint" id="set-default-range-hint">Contoh: pilih tanggal 25 → defaultnya otomatis jadi "25 bulan ini – 24 bulan berikutnya", selalu mengikuti tanggal hari ini saat dibuka.</p>
           </div>
         </div>
@@ -1057,7 +1057,7 @@
       </div>
       <div class="field" id="edit-field-source">
         <label for="edit-tx-source" id="edit-field-source-label">Sumber Dana</label>
-        <select id="edit-tx-source">
+        <select id="edit-tx-source" class="select-compact">
           <option value="cash">💵 Cash</option>
           <option value="rekening" selected>🏦 Rekening</option>
         </select>
