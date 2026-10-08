@@ -297,6 +297,21 @@
   let currentUser = null; // { username, displayName }
   let isConfigured = CONFIG.API_URL && CONFIG.API_URL.startsWith("http");
 
+  // Pengaturan anggaran (batas pengeluaran harian otomatis, target tabungan,
+  // periode pemasukan custom) — dibagikan bersama seluruh keluarga, sama
+  // seperti kategori. Nilai default dipakai sebelum data dari Spreadsheet
+  // datang, supaya kartu-kartu anggaran tidak rusak/kosong saat render awal.
+  const DEFAULT_SETTINGS = {
+    periodStartDay: 1,
+    savingsTargetType: "amount", // "amount" | "percent"
+    savingsTargetValue: 0,
+    dailyLimitMode: "auto", // "auto" | "manual"
+    dailyLimitManualValue: 0,
+    dailyLimitManualCycleStart: "",
+    dailyLimitAlwaysManual: false,
+  };
+  let SETTINGS = { ...DEFAULT_SETTINGS };
+
   /* ---------------- Auth ---------------- */
   function loadStoredUser() {
     try {
@@ -320,9 +335,9 @@
   // sambil data terbaru masih diambil dari Spreadsheet di belakang layar
   // — daripada layar kosong-total sampai request selesai.
   const DATA_CACHE_KEY = "azmyra_finance_data_cache_v1";
-  function saveDataCache(txs, cats) {
+  function saveDataCache(txs, cats, settings) {
     try {
-      localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({ transactions: txs, categories: cats }));
+      localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({ transactions: txs, categories: cats, settings: settings }));
     } catch (e) {
       // localStorage penuh/diblokir — abaikan, cache cuma optimisasi, bukan wajib.
     }
@@ -351,6 +366,7 @@
       user: json.user,
       transactions: (json.data || []).map((t) => ({ ...t, date: normalizeDate(t.date) })),
       categories: json.categories || { income: [], expense: [] },
+      settings: { ...DEFAULT_SETTINGS, ...(json.settings || {}) },
     };
   }
 
@@ -362,7 +378,19 @@
     if (!json.success) throw new Error(json.error || "Gagal memuat data");
     const transactions = (json.data || []).map((t) => ({ ...t, date: normalizeDate(t.date) }));
     const categories = json.categories || { income: [], expense: [] };
-    return { transactions, categories };
+    const settings = { ...DEFAULT_SETTINGS, ...(json.settings || {}) };
+    return { transactions, categories, settings };
+  }
+
+  async function updateSettingsRemote(partial) {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "updateSettings", settings: partial, username: currentUser ? currentUser.username : "" }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Gagal menyimpan pengaturan");
+    return { ...DEFAULT_SETTINGS, ...(json.settings || {}) };
   }
 
   async function addTransactionRemote(tx) {
@@ -622,6 +650,224 @@
 
     significant.sort((a, b) => b.diff - a.diff);
     return significant.slice(0, 2);
+  }
+
+  /* ---------------- Anggaran: siklus periode & batas harian otomatis ----------------
+     Ini SENGAJA terpisah total dari periodType/rangeStart/rangeEnd di atas
+     (yang mengatur periode mana yang SEDANG DILIHAT di Dashboard/Laporan).
+     Siklus anggaran di sini selalu mengacu ke periode yang memuat HARI INI,
+     dihitung dari SETTINGS.periodStartDay (tanggal mulai siklus bulanan,
+     misal 25 kalau gajian tanggal 25 — bukan selalu tanggal 1). */
+  function clampDayToMonth(year, monthIndex, day) {
+    const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+    return Math.min(Math.max(1, day), lastDay);
+  }
+
+  function getBudgetCycleRange(refISO) {
+    const ref = parseISODate(refISO);
+    const startDay = Math.min(Math.max(Number(SETTINGS.periodStartDay) || 1, 1), 31);
+    const y = ref.getFullYear();
+    const m = ref.getMonth();
+    const d = ref.getDate();
+    const thisMonthStartDay = clampDayToMonth(y, m, startDay);
+
+    let cycleStartY = y;
+    let cycleStartM = m;
+    if (d < thisMonthStartDay) {
+      // Siklus berjalan masih dimulai di bulan sebelumnya.
+      cycleStartM = m - 1;
+      if (cycleStartM < 0) { cycleStartM = 11; cycleStartY--; }
+    }
+    const cycleStartD = clampDayToMonth(cycleStartY, cycleStartM, startDay);
+    const cycleStart = new Date(cycleStartY, cycleStartM, cycleStartD);
+
+    let nextY = cycleStartY;
+    let nextM = cycleStartM + 1;
+    if (nextM > 11) { nextM = 0; nextY++; }
+    const nextStartD = clampDayToMonth(nextY, nextM, startDay);
+    const nextStart = new Date(nextY, nextM, nextStartD);
+    const cycleEnd = new Date(nextStart);
+    cycleEnd.setDate(cycleEnd.getDate() - 1);
+
+    return { start: toISODate(cycleStart), end: toISODate(cycleEnd) };
+  }
+
+  // Dirangkum satu tempat (dipakai oleh kartu Dashboard, peringatan di
+  // Tambah Transaksi, dan grafik di Laporan) supaya logikanya konsisten.
+  function computeBudgetState(refISO) {
+    refISO = refISO || todayISO();
+    const range = getBudgetCycleRange(refISO);
+    const cycleTx = filterByPeriod(transactions, range);
+    const periodIncome = cycleTx.filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+    const periodExpense = cycleTx.filter((t) => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+
+    const startD = parseISODate(range.start);
+    const endD = parseISODate(range.end);
+    const refD = parseISODate(refISO);
+    const daysInPeriod = Math.round((endD - startD) / 86400000) + 1;
+    const daysRemaining = Math.max(1, Math.round((endD - refD) / 86400000) + 1);
+    const dayIndex = Math.min(daysInPeriod, Math.max(1, daysInPeriod - daysRemaining + 1));
+
+    const savingsTargetAmount =
+      SETTINGS.savingsTargetType === "percent"
+        ? periodIncome * ((Number(SETTINGS.savingsTargetValue) || 0) / 100)
+        : Number(SETTINGS.savingsTargetValue) || 0;
+    const availableForSpending = Math.max(periodIncome - savingsTargetAmount, 0);
+    const remainingBudget = availableForSpending - periodExpense;
+    // Dibulatkan ke 0 (bukan negatif) kalau tabungan target sudah melebihi
+    // sisa dana — supaya angka batas harian tidak pernah tampil minus.
+    const autoDailyLimit = remainingBudget > 0 ? remainingBudget / daysRemaining : 0;
+
+    // Override manual berlaku HANYA untuk siklus tempat ia di-set (kecuali
+    // "selalu pakai manual" dicentang) — begitu siklus baru mulai, otomatis
+    // balik ke mode Otomatis tanpa perlu ditulis ulang ke server.
+    const isManualActive =
+      SETTINGS.dailyLimitMode === "manual" &&
+      (SETTINGS.dailyLimitAlwaysManual || SETTINGS.dailyLimitManualCycleStart === range.start);
+    const dailyLimitValue = isManualActive ? Number(SETTINGS.dailyLimitManualValue) || 0 : autoDailyLimit;
+
+    const todayExpense = transactions
+      .filter((t) => t.type === "expense" && t.date === refISO)
+      .reduce((s, t) => s + Number(t.amount), 0);
+    const savingsAchieved = Math.max(periodIncome - periodExpense, 0);
+
+    return {
+      range,
+      periodIncome,
+      periodExpense,
+      daysInPeriod,
+      daysRemaining,
+      dayIndex,
+      savingsTargetAmount,
+      availableForSpending,
+      remainingBudget,
+      autoDailyLimit,
+      isManualActive,
+      dailyLimitValue,
+      todayExpense,
+      savingsAchieved,
+    };
+  }
+
+  // Dipanggil dari renderDashboard() — mengisi 2 kartu anggaran di atas
+  // Dashboard ("Batas Pengeluaran Hari Ini" & "Tabungan Periode Ini").
+  function renderBudgetCards() {
+    const cycleLabelEl = document.getElementById("budget-cycle-label");
+    const badgeEl = document.getElementById("budget-daily-limit-badge");
+    const valueEl = document.getElementById("budget-daily-limit-value");
+    const usedBarEl = document.getElementById("budget-daily-used-bar");
+    const usedTextEl = document.getElementById("budget-daily-used-text");
+    const savingsValueEl = document.getElementById("budget-savings-value");
+    const savingsBarEl = document.getElementById("budget-savings-bar");
+    const savingsCaptionEl = document.getElementById("budget-savings-caption");
+    if (!cycleLabelEl) return; // kartu belum ada di DOM (seharusnya tidak terjadi)
+
+    const state = computeBudgetState();
+    cycleLabelEl.textContent = `Siklus ${formatDateShort(state.range.start)} – ${formatDateShort(state.range.end)} · Hari ke-${state.dayIndex} dari ${state.daysInPeriod}`;
+
+    badgeEl.textContent = state.isManualActive ? "Manual" : "Otomatis";
+    badgeEl.classList.toggle("budget-mode-badge--manual", state.isManualActive);
+
+    valueEl.textContent = formatRupiah(state.dailyLimitValue);
+
+    const usedPct = state.dailyLimitValue > 0 ? Math.min(100, (state.todayExpense / state.dailyLimitValue) * 100) : (state.todayExpense > 0 ? 100 : 0);
+    usedBarEl.style.width = `${usedPct}%`;
+    usedBarEl.classList.toggle("budget-progress-fill--over", state.dailyLimitValue > 0 && state.todayExpense > state.dailyLimitValue);
+    usedTextEl.textContent =
+      state.dailyLimitValue > 0 && state.todayExpense > state.dailyLimitValue
+        ? `Terpakai hari ini: ${formatRupiah(state.todayExpense)} — melebihi batas ${formatRupiah(state.dailyLimitValue)}`
+        : `Terpakai hari ini: ${formatRupiah(state.todayExpense)}`;
+
+    savingsValueEl.textContent = formatRupiah(state.savingsAchieved);
+    if (state.savingsTargetAmount > 0) {
+      const savingsPct = Math.min(100, (state.savingsAchieved / state.savingsTargetAmount) * 100);
+      savingsBarEl.style.width = `${savingsPct}%`;
+      savingsCaptionEl.textContent = `Target siklus ini: ${formatRupiah(state.savingsTargetAmount)} (${Math.round(savingsPct)}%)`;
+    } else {
+      savingsBarEl.style.width = "0%";
+      savingsCaptionEl.textContent = "Belum ada target tabungan diset. Atur di menu Pengaturan.";
+    }
+  }
+
+  // Dipanggil dari renderPreview() (Tambah Transaksi) — peringatan LUNAK
+  // (tidak memblokir submit) kalau jumlah yang sedang diisi akan membuat
+  // pengeluaran hari ini melebihi batas harian.
+  function updateBudgetWarning(rawAmount) {
+    const hintEl = document.getElementById("budget-warning-hint");
+    if (!hintEl) return;
+    if (currentType !== "expense" || !rawAmount) {
+      hintEl.hidden = true;
+      return;
+    }
+    const state = computeBudgetState();
+    if (state.dailyLimitValue <= 0) {
+      hintEl.hidden = true;
+      return;
+    }
+    const projected = state.todayExpense + rawAmount;
+    if (projected > state.dailyLimitValue) {
+      const over = projected - state.dailyLimitValue;
+      hintEl.textContent = `⚠️ Transaksi ini membuat pengeluaran hari ini melebihi batas harian (${formatRupiah(state.dailyLimitValue)}) sebesar ${formatRupiah(over)}.`;
+      hintEl.hidden = false;
+    } else {
+      hintEl.hidden = true;
+    }
+  }
+
+  // Dipanggil dari renderLaporan() — grafik batang pengeluaran harian pada
+  // siklus anggaran BERJALAN (independen dari periodType/rangeStart/
+  // rangeEnd "Lihat Periode"), dibandingkan dengan satu garis batas harian
+  // yang berlaku SAAT INI (bukan dihitung ulang per hari — supaya tidak
+  // bias oleh transaksi yang belum terjadi saat menilai hari-hari lampau).
+  function renderBudgetChart() {
+    const container = document.getElementById("budget-chart");
+    const emptyEl = document.getElementById("budget-chart-empty");
+    if (!container) return;
+
+    const state = computeBudgetState();
+    const todayD = parseISODate(todayISO());
+    const cycleStartD = parseISODate(state.range.start);
+    const daysSoFar = Math.round((todayD - cycleStartD) / 86400000) + 1;
+
+    const days = [];
+    for (let i = 0; i < daysSoFar; i++) {
+      const d = new Date(cycleStartD);
+      d.setDate(d.getDate() + i);
+      const iso = toISODate(d);
+      const expense = transactions
+        .filter((t) => t.type === "expense" && t.date === iso)
+        .reduce((s, t) => s + Number(t.amount), 0);
+      days.push({ iso, label: String(d.getDate()), expense });
+    }
+
+    const totalExpense = days.reduce((s, dd) => s + dd.expense, 0);
+    if (totalExpense === 0) {
+      container.innerHTML = "";
+      emptyEl.hidden = false;
+      return;
+    }
+    emptyEl.hidden = true;
+
+    const limit = state.dailyLimitValue;
+    const maxVal = Math.max(limit, ...days.map((dd) => dd.expense), 1);
+    const limitPct = Math.min(100, (limit / maxVal) * 100);
+
+    container.innerHTML = "";
+    days.forEach((dd) => {
+      const heightPct = Math.min(100, (dd.expense / maxVal) * 100);
+      const isOver = limit > 0 && dd.expense > limit;
+      const col = document.createElement("div");
+      col.className = "budget-chart-col";
+      col.title = `${formatDateShort(dd.iso)}: ${formatRupiah(dd.expense)}${limit > 0 ? ` (batas saat ini: ${formatRupiah(limit)})` : ""}`;
+      col.innerHTML = `
+        <div class="budget-chart-bar-track">
+          ${limit > 0 ? `<div class="budget-chart-limit-line" style="bottom:${limitPct}%"></div>` : ""}
+          <div class="budget-chart-bar ${isOver ? "is-over" : ""}" style="height:${heightPct}%"></div>
+        </div>
+        <div class="budget-chart-label">${escapeHtml(dd.label)}</div>
+      `;
+      container.appendChild(col);
+    });
   }
 
   /* ---------------- Setup kontrol periode ---------------- */
@@ -1342,6 +1588,7 @@
     renderHealthCard(periodIncome, periodExpense);
     renderReportCategories(periodTx);
     renderTrendChart();
+    renderBudgetChart();
   }
 
   function renderHealthCard(periodIncome, periodExpense) {
@@ -1609,6 +1856,7 @@
 
   function renderDashboard() {
     renderHeroStats();
+    renderBudgetCards();
     renderPeriodPanels();
     renderLaporan();
   }
@@ -1658,6 +1906,7 @@
 
     const rawAmount = Number(amountInput.value.replace(/\D/g, "")) || 0;
     previewAmountEl.textContent = formatRupiah(rawAmount);
+    updateBudgetWarning(rawAmount);
 
     const d = parseISODate(dateInput.value);
     previewDateEl.textContent = isNaN(d)
@@ -1856,25 +2105,37 @@
   });
 
   /* ---- Modal Tambah Kategori ---- */
-  function openCategoryModal() {
+  // presetType (opsional): jenis kategori yang langsung dipilih saat modal
+  // dibuka. Dipakai oleh tombol "+ Kategori Baru" di Tambah Transaksi
+  // supaya jenisnya ikut jenis transaksi yang sedang diisi, bukan selalu
+  // ikut tab yang sedang aktif di daftar Kelola Kategori.
+  function openCategoryModal(presetType) {
     categoryForm.reset();
     catIconInput.value = "🏷️";
     catIconPreview.textContent = "🏷️";
-    // Defaultnya ikut tab yang lagi aktif di daftar, tapi tetap bisa diganti
-    // di dalam form — supaya jelas kategori baru ini masuk Pemasukan atau
-    // Pengeluaran, tidak "diam-diam" ikut tab yang sedang dilihat.
-    setCategoryFormType(categoryManageType);
+    // Kalau tidak ada preset, defaultnya ikut tab yang lagi aktif di
+    // daftar, tapi tetap bisa diganti di dalam form — supaya jelas
+    // kategori baru ini masuk Pemasukan atau Pengeluaran, tidak "diam-diam"
+    // ikut tab yang sedang dilihat.
+    setCategoryFormType(presetType || categoryManageType);
     categoryModal.hidden = false;
     catLabelInput.focus();
   }
   function closeCategoryModal() {
     categoryModal.hidden = true;
   }
-  catAddOpenBtn.addEventListener("click", openCategoryModal);
+  catAddOpenBtn.addEventListener("click", () => openCategoryModal());
   categoryModalClose.addEventListener("click", closeCategoryModal);
   categoryModal.addEventListener("click", (e) => {
     if (e.target === categoryModal) closeCategoryModal();
   });
+
+  const txCatQuickAddBtn = document.getElementById("tx-cat-quickadd-btn");
+  if (txCatQuickAddBtn) {
+    txCatQuickAddBtn.addEventListener("click", () => {
+      openCategoryModal(currentType === "income" ? "income" : "expense");
+    });
+  }
 
   /* ---- Emoji picker (dipakai oleh tombol Emoji di form Tambah Kategori) ---- */
   const emojiPickerModal = document.getElementById("emoji-picker-modal");
@@ -1985,6 +2246,14 @@
       }
       renderCategoryManageList();
       populateCategories(currentType);
+      // Kalau kategori baru ini jenisnya sama dengan jenis transaksi yang
+      // sedang diisi di Tambah Transaksi (misal ditambah lewat tombol
+      // "+ Kategori Baru"), langsung pilihkan di dropdown supaya tidak
+      // perlu cari manual lagi.
+      if (categoryFormType === currentType) {
+        categorySelect.value = newCat.id;
+        renderPreview();
+      }
       closeCategoryModal();
       showToast("Kategori ditambahkan ✓");
     } catch (err) {
@@ -2144,6 +2413,170 @@
 
     return li;
   }
+
+  /* ---------------- Pengaturan: tab Anggaran & Tabungan ---------------- */
+  const settingsTabButtons = document.querySelectorAll("#settings-tabs .settings-tab");
+  const settingsPanels = {
+    anggaran: document.getElementById("settings-panel-anggaran"),
+    kategori: document.getElementById("settings-panel-kategori"),
+    notifikasi: document.getElementById("settings-panel-notifikasi"),
+  };
+  settingsTabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.settingstab;
+      settingsTabButtons.forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle("is-active", active);
+        b.setAttribute("aria-selected", String(active));
+      });
+      Object.keys(settingsPanels).forEach((key) => {
+        if (settingsPanels[key]) settingsPanels[key].hidden = key !== tab;
+      });
+    });
+  });
+
+  const setPeriodStartDaySelect = document.getElementById("set-period-start-day");
+  for (let day = 1; day <= 31; day++) {
+    const opt = document.createElement("option");
+    opt.value = String(day);
+    opt.textContent = `Tanggal ${day}`;
+    setPeriodStartDaySelect.appendChild(opt);
+  }
+
+  const setSavingsTypeButtons = document.querySelectorAll("#set-savings-type .chip");
+  const setSavingsValueInput = document.getElementById("set-savings-value");
+  const setSavingsValueLabel = document.getElementById("set-savings-value-label");
+  const setSavingsValuePrefix = document.getElementById("set-savings-value-prefix");
+  let settingsSavingsType = "amount";
+
+  function setSettingsSavingsType(type) {
+    settingsSavingsType = type;
+    setSavingsTypeButtons.forEach((b) => b.classList.toggle("is-active", b.dataset.savingstype === type));
+    if (type === "percent") {
+      setSavingsValueLabel.textContent = "Persen Tabungan per Siklus";
+      setSavingsValuePrefix.textContent = "%";
+    } else {
+      setSavingsValueLabel.textContent = "Jumlah Tabungan per Siklus";
+      setSavingsValuePrefix.textContent = "Rp";
+    }
+  }
+  setSavingsTypeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => setSettingsSavingsType(btn.dataset.savingstype));
+  });
+  setSavingsValueInput.addEventListener("input", () => {
+    const digits = setSavingsValueInput.value.replace(/\D/g, "");
+    if (settingsSavingsType === "percent") {
+      // Dibatasi 0–100, tanpa pemisah ribuan (bukan rupiah).
+      const n = Math.min(100, Number(digits) || 0);
+      setSavingsValueInput.value = digits ? String(n) : "";
+    } else {
+      setSavingsValueInput.value = digits ? Number(digits).toLocaleString("id-ID") : "";
+    }
+  });
+
+  const setDailyModeButtons = document.querySelectorAll("#set-daily-mode .type-btn");
+  const setDailyManualField = document.getElementById("set-daily-manual-field");
+  const setDailyManualValueInput = document.getElementById("set-daily-manual-value");
+  const setDailyAlwaysManualCheckbox = document.getElementById("set-daily-always-manual");
+  const setDailyAutoHint = document.getElementById("set-daily-auto-hint");
+  let settingsDailyMode = "auto";
+
+  function setSettingsDailyMode(mode) {
+    settingsDailyMode = mode;
+    setDailyModeButtons.forEach((b) => {
+      const active = b.dataset.dailymode === mode;
+      b.classList.toggle("is-active", active);
+      b.setAttribute("aria-selected", String(active));
+    });
+    setDailyManualField.hidden = mode !== "manual";
+    setDailyAutoHint.hidden = mode !== "auto";
+  }
+  setDailyModeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => setSettingsDailyMode(btn.dataset.dailymode));
+  });
+  setDailyManualValueInput.addEventListener("input", () => {
+    const digits = setDailyManualValueInput.value.replace(/\D/g, "");
+    setDailyManualValueInput.value = digits ? Number(digits).toLocaleString("id-ID") : "";
+  });
+
+  // Mengisi ulang seluruh form Pengaturan dari SETTINGS saat ini — dipanggil
+  // setiap kali data (termasuk settings) baru datang dari Spreadsheet,
+  // supaya form selalu menampilkan nilai yang benar-benar tersimpan.
+  function renderSettingsForm() {
+    if (!setPeriodStartDaySelect) return;
+    setPeriodStartDaySelect.value = String(Math.min(Math.max(Number(SETTINGS.periodStartDay) || 1, 1), 31));
+
+    setSettingsSavingsType(SETTINGS.savingsTargetType === "percent" ? "percent" : "amount");
+    const savingsVal = Number(SETTINGS.savingsTargetValue) || 0;
+    setSavingsValueInput.value = savingsVal
+      ? settingsSavingsType === "percent"
+        ? String(savingsVal)
+        : savingsVal.toLocaleString("id-ID")
+      : "";
+
+    setSettingsDailyMode(SETTINGS.dailyLimitMode === "manual" ? "manual" : "auto");
+    const manualVal = Number(SETTINGS.dailyLimitManualValue) || 0;
+    setDailyManualValueInput.value = manualVal ? manualVal.toLocaleString("id-ID") : "";
+    setDailyAlwaysManualCheckbox.checked = !!SETTINGS.dailyLimitAlwaysManual;
+
+    // Kalau mode tersimpan "manual" tapi stempel cycle-nya bukan siklus
+    // yang sedang berjalan sekarang (dan bukan "selalu manual"), berarti
+    // override ini otomatis sudah tidak aktif (lihat computeBudgetState) —
+    // beri tahu di form supaya tidak membingungkan kenapa kartu Dashboard
+    // menampilkan "Otomatis" padahal form ini menunjukkan mode "Manual".
+    const staleHintEl = document.getElementById("set-daily-manual-stale-hint");
+    if (staleHintEl) {
+      const isStale =
+        SETTINGS.dailyLimitMode === "manual" &&
+        !SETTINGS.dailyLimitAlwaysManual &&
+        SETTINGS.dailyLimitManualCycleStart !== getBudgetCycleRange(todayISO()).start;
+      staleHintEl.hidden = !isStale;
+    }
+  }
+
+  const settingsSaveBtn = document.getElementById("settings-save-btn");
+  settingsSaveBtn.addEventListener("click", async () => {
+    if (!isConfigured) {
+      showToast("Aplikasi belum terhubung ke Google Spreadsheet.");
+      return;
+    }
+    const savingsRaw = Number(setSavingsValueInput.value.replace(/\D/g, "")) || 0;
+    const manualRaw = Number(setDailyManualValueInput.value.replace(/\D/g, "")) || 0;
+
+    const partial = {
+      periodStartDay: Number(setPeriodStartDaySelect.value) || 1,
+      savingsTargetType: settingsSavingsType,
+      savingsTargetValue: settingsSavingsType === "percent" ? Math.min(100, savingsRaw) : savingsRaw,
+      dailyLimitMode: settingsDailyMode,
+      dailyLimitManualValue: manualRaw,
+      dailyLimitAlwaysManual: setDailyAlwaysManualCheckbox.checked,
+      // Setiap kali disimpan dalam mode manual, override ini otomatis
+      // "diperbarui" supaya berlaku untuk siklus yang sedang berjalan saat
+      // ini (kalau tidak dicentang "selalu manual") — persis seperti saat
+      // pertama kali diset.
+      dailyLimitManualCycleStart: settingsDailyMode === "manual" ? getBudgetCycleRange(todayISO()).start : SETTINGS.dailyLimitManualCycleStart || "",
+    };
+
+    const originalLabel = settingsSaveBtn.textContent;
+    settingsSaveBtn.disabled = true;
+    settingsSaveBtn.textContent = "Menyimpan…";
+    try {
+      SETTINGS = await updateSettingsRemote(partial);
+      renderSettingsForm();
+      renderDashboard();
+      saveDataCache(transactions, CATEGORIES, SETTINGS);
+      const successEl = document.getElementById("settings-save-success");
+      successEl.hidden = false;
+      setTimeout(() => (successEl.hidden = true), 2200);
+      showToast("Pengaturan berhasil disimpan ✓");
+    } catch (err) {
+      console.error(err);
+      showToast("Gagal menyimpan pengaturan. Cek koneksi internetmu, lalu coba lagi.");
+    } finally {
+      settingsSaveBtn.disabled = false;
+      settingsSaveBtn.textContent = originalLabel;
+    }
+  });
 
   /* ---------------- Riwayat (kalender) ---------------- */
   const searchInput = document.getElementById("search-tx");
@@ -2855,12 +3288,14 @@
       if (cached) {
         transactions = cached.transactions;
         CATEGORIES = cached.categories;
+        if (cached.settings) SETTINGS = { ...DEFAULT_SETTINGS, ...cached.settings };
         rebuildCategoryLookup();
         populateCategories(currentType);
         renderCategoryManageList();
         populateYearSelect();
         renderDashboard();
         renderHistory();
+        renderSettingsForm();
       }
       loadAllData(false);
     }
@@ -2877,13 +3312,15 @@
       const result = preloaded || (await fetchTransactions());
       transactions = result.transactions;
       CATEGORIES = result.categories;
+      SETTINGS = { ...DEFAULT_SETTINGS, ...(result.settings || {}) };
       rebuildCategoryLookup();
       populateCategories(currentType);
       renderCategoryManageList();
       populateYearSelect();
       renderDashboard();
       renderHistory();
-      saveDataCache(transactions, CATEGORIES);
+      renderSettingsForm();
+      saveDataCache(transactions, CATEGORIES, SETTINGS);
       if (isManualRefresh) showToast("Data diperbarui ✓");
     } catch (err) {
       console.error(err);

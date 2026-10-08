@@ -6,6 +6,22 @@ const SHEET_USERS = "Users";
 const SHEET_LOG = "Log";
 const SHEET_DEVICES = "Devices";
 const SHEET_TRANSFER = "TarikTunai";
+const SHEET_SETTINGS = "Pengaturan";
+
+// Pengaturan anggaran (batas pengeluaran harian otomatis, target tabungan,
+// dsb) disimpan sebagai satu sheet key-value SHARED untuk seluruh keluarga
+// (bukan per-user) — konsisten dengan kategori yang juga dibagikan bersama,
+// bukan milik satu akun. Nilai default dipakai kalau sheet belum ada atau
+// key tertentu belum pernah disimpan.
+const DEFAULT_SETTINGS = {
+  periodStartDay: 1, // tanggal mulai siklus bulanan (1-31)
+  savingsTargetType: "amount", // "amount" (Rp) | "percent" (% dari pemasukan)
+  savingsTargetValue: 0,
+  dailyLimitMode: "auto", // "auto" | "manual"
+  dailyLimitManualValue: 0,
+  dailyLimitManualCycleStart: "", // tanggal mulai siklus saat nilai manual di-set (ISO yyyy-MM-dd)
+  dailyLimitAlwaysManual: false,
+};
 
 const DEFAULT_CATEGORIES_INCOME = [
   ["gaji", "Gaji", "💼"],
@@ -30,7 +46,7 @@ const DEFAULT_CATEGORIES_EXPENSE = [
 function doGet(e) {
   const action = (e.parameter && e.parameter.action) || "list";
   if (action === "list") {
-    return respondJson({ success: true, data: getAllTransactions(), categories: getAllCategories() });
+    return respondJson({ success: true, data: getAllTransactions(), categories: getAllCategories(), settings: getAllSettings() });
   }
   return respondJson({ success: false, error: "Aksi tidak dikenal" });
 }
@@ -52,6 +68,7 @@ function doPost(e) {
   if (action === "addCategory") return handleAddCategory(body);
   if (action === "updateCategory") return handleUpdateCategory(body);
   if (action === "deleteCategory") return handleDeleteCategory(body);
+  if (action === "updateSettings") return handleUpdateSettings(body);
 
   return respondJson({ success: false, error: "Aksi tidak dikenal" });
 }
@@ -115,6 +132,56 @@ function getLogSheet() { return getOrCreateSheet(SHEET_LOG, ["timestamp", "usern
 function getDevicesSheet() { return getOrCreateSheet(SHEET_DEVICES, ["username", "token", "updatedAt"]); }
 // Sheet baru untuk mencatat tarik tunai (Rekening -> Cash).
 function getTransferSheet() { return getOrCreateSheet(SHEET_TRANSFER, ["id", "amount", "note", "date", "user"]); }
+// Sheet pengaturan anggaran — format key-value (2 kolom), 1 baris per key,
+// supaya menambah key baru nanti tidak perlu mengubah struktur kolom.
+function getSettingsSheet() { return getOrCreateSheet(SHEET_SETTINGS, ["key", "value"]); }
+
+function getAllSettings() {
+  const sheet = getSettingsSheet();
+  const rows = sheet.getDataRange().getValues();
+  const stored = {};
+  for (let i = 1; i < rows.length; i++) {
+    const key = rows[i][0];
+    if (key === "" || key === null) continue;
+    stored[String(key)] = rows[i][1];
+  }
+  // Gabungkan dengan default supaya key yang belum pernah disimpan tetap
+  // punya nilai yang masuk akal, dan tipe datanya dikembalikan sesuai
+  // bentuk default-nya (angka tetap angka, boolean tetap boolean) karena
+  // nilai dari sheet selalu datang sebagai string/Number mentah dari Sheets.
+  const merged = {};
+  Object.keys(DEFAULT_SETTINGS).forEach((key) => {
+    const def = DEFAULT_SETTINGS[key];
+    if (!(key in stored) || stored[key] === "") {
+      merged[key] = def;
+      return;
+    }
+    const raw = stored[key];
+    if (typeof def === "number") merged[key] = Number(raw) || 0;
+    else if (typeof def === "boolean") merged[key] = String(raw).toLowerCase() === "true";
+    else merged[key] = String(raw);
+  });
+  return merged;
+}
+
+function saveSettingsPartial(partial) {
+  const sheet = getSettingsSheet();
+  const rows = sheet.getDataRange().getValues();
+  const existingKeys = {};
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] !== "" && rows[i][0] !== null) existingKeys[String(rows[i][0])] = i + 1; // nomor baris (1-based)
+  }
+  Object.keys(partial).forEach((key) => {
+    if (!(key in DEFAULT_SETTINGS)) return; // tolak key yang tidak dikenal
+    const value = partial[key];
+    if (key in existingKeys) {
+      sheet.getRange(existingKeys[key], 2).setValue(value);
+    } else {
+      sheet.appendRow([key, value]);
+    }
+  });
+  return getAllSettings();
+}
 
 function readCategoryRows(sheet) {
   const rows = sheet.getDataRange().getValues();
@@ -229,6 +296,7 @@ function handleLogin(body) {
           user: { username: String(rows[i][0]), displayName: rows[i][2] ? String(rows[i][2]) : String(rows[i][0]) },
           data: getAllTransactions(),
           categories: getAllCategories(),
+          settings: getAllSettings(),
         });
       }
       return respondJson({ success: false, error: "Password salah" });
@@ -442,6 +510,19 @@ function handleDeleteCategory(body) {
   return respondJson({ success: true });
 }
 
+
+/* ---------------- Pengaturan anggaran ---------------- */
+
+function handleUpdateSettings(body) {
+  const partial = body.settings;
+  const username = body.username || "tidak diketahui";
+  if (!partial || typeof partial !== "object") {
+    return respondJson({ success: false, error: "Data pengaturan tidak lengkap" });
+  }
+  const merged = saveSettingsPartial(partial);
+  logActivity(username, "edit", `Perbarui pengaturan anggaran: ${JSON.stringify(partial)}`);
+  return respondJson({ success: true, settings: merged });
+}
 
 /* ---------------- Kirim push notification via Firebase Cloud Messaging ---------------- */
 

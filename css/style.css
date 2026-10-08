@@ -957,3 +957,99 @@ input[type="date"]::-webkit-datetime-edit{ text-align:left; }
   .page-head h1{ font-size:24px; }
   .filter-bar{ flex-direction:column; align-items:stretch; }
 }
+
+/* ================================================================
+   Upgrade: Batas Pengeluaran Otomatis, Target Tabungan & Pengaturan
+   ================================================================ */
+
+/* ---------------- Kartu anggaran (Dashboard) ---------------- */
+.budget-row{ display:grid; grid-template-columns:repeat(2, 1fr); gap: var(--stack-gap); margin-bottom: var(--stack-gap); align-items:stretch; }
+.budget-row .budget-card{ margin-bottom:0; }
+.budget-card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:4px; }
+.budget-cycle-label{ margin:4px 0 0; font-size:12px; color: var(--ink-3); }
+.budget-mode-badge{
+  flex-shrink:0; padding:4px 11px; border-radius:999px; font-size:11.5px; font-weight:700;
+  background: var(--fern-light); color: var(--fern-dk); white-space:nowrap;
+}
+.budget-mode-badge--manual{ background: var(--honey-light); color:#8A6516; }
+.budget-value{
+  font-family:'Newsreader', serif; font-size:28px; font-weight:700; color: var(--pine);
+  margin: 10px 0 14px; font-variant-numeric: tabular-nums;
+}
+.budget-value--sm{ font-size:22px; margin-top:12px; }
+.budget-progress-track{ height:10px; background: var(--mist); border-radius:999px; overflow:hidden; }
+.budget-progress-fill{ height:100%; background: var(--fern); border-radius:999px; transition: width .5s ease; }
+.budget-progress-fill--over{ background: var(--brick); }
+.budget-progress-track--savings{ background: var(--honey-light); }
+.budget-progress-fill--savings{ background: var(--honey); }
+.budget-progress-caption{ margin:10px 0 0; font-size:12.5px; color: var(--ink-3); line-height:1.5; }
+.budget-card-link{
+  display:inline-block; margin-top:12px; font-size:12.5px; font-weight:700; color: var(--fern-dk);
+  cursor:pointer; text-decoration:none; background:none; border:none; font-family:inherit; padding:0;
+}
+.budget-card-link:hover{ text-decoration:underline; }
+
+/* Ikon lonceng tombol notifikasi (dipindah dari dropdown profil ke
+   Pengaturan → Notifikasi) — setiap ikon svg di dalam .btn di app ini
+   perlu ukuran eksplisit sendiri (lihat pola .type-btn svg dkk di atas). */
+#notif-btn svg{ width:19px; height:19px; flex-shrink:0; }
+
+/* ---------------- "+ Kategori Baru" cepat & peringatan batas (Tambah Transaksi) ---------------- */
+.field-label-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:7px; }
+.field-label-row label{ margin-bottom:0; }
+.field-quickadd-btn{
+  background:none; border:none; padding:0; cursor:pointer; color: var(--fern-dk);
+  font-size:12.5px; font-weight:700; white-space:nowrap; font-family:inherit;
+}
+.field-quickadd-btn:hover{ text-decoration:underline; }
+
+.field-hint--warning{
+  color: var(--brick); background: var(--brick-light); padding:9px 12px;
+  border-radius:10px; margin:-6px 0 18px; font-weight:600; line-height:1.5;
+}
+
+/* ---------------- Halaman Pengaturan ---------------- */
+.settings-tabs{ margin-bottom:24px; }
+
+.checkbox-field{
+  display:flex; align-items:flex-start; gap:9px; margin:14px 0 0;
+  font-size:13px; font-weight:600; color: var(--moss); cursor:pointer; line-height:1.4;
+}
+.checkbox-field input[type="checkbox"]{
+  width:17px; height:17px; margin:1px 0 0; accent-color: var(--fern); cursor:pointer; flex-shrink:0;
+}
+
+/* Fallback umum untuk .type-btn.is-active di luar #tx-type-switch (yang
+   selector is-active-nya terikat ke data-type tertentu) — dipakai oleh
+   toggle mode batas harian (data-dailymode) di Pengaturan. Spesifisitasnya
+   lebih rendah dari selector [data-type=...].is-active yang sudah ada,
+   jadi tidak mengubah tampilan tombol jenis transaksi yang sudah ada. */
+.type-btn.is-active{ background:#fff; color: var(--fern-dk); box-shadow: var(--shadow-sm); }
+.type-switch--sm{ margin-bottom:0; }
+
+/* ---------------- Grafik "Batas Harian vs Realisasi" (Laporan) ---------------- */
+.budget-chart{ display:flex; align-items:stretch; gap:8px; height:180px; padding: 10px 4px 0; }
+.budget-chart-col{ flex:1; display:flex; flex-direction:column; align-items:center; min-width:0; }
+.budget-chart-bar-track{ width:100%; height:150px; position:relative; }
+.budget-chart-limit-line{ position:absolute; left:0; right:0; height:2px; background: var(--honey); }
+.budget-chart-bar{
+  position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+  width:60%; max-width:36px; border-radius:4px 4px 0 0;
+  background: var(--fern); transition: height .5s ease;
+}
+.budget-chart-bar.is-over{ background: var(--brick); }
+.budget-chart-label{ margin-top:8px; font-size:11px; color: var(--ink-3); text-align:center; white-space:nowrap; }
+
+@media (max-width: 1024px){
+  .budget-value{ font-size:24px; }
+  .budget-value--sm{ font-size:19px; }
+}
+@media (max-width: 860px){
+  .budget-row{ grid-template-columns:1fr; }
+}
+@media (max-width: 640px){
+  .checkbox-field{ font-size:12.5px; }
+}
+@media (max-width: 560px){
+  .field-label-row{ flex-direction:column; align-items:flex-start; gap:4px; }
+}
